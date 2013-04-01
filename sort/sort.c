@@ -8,6 +8,16 @@
 
 
 
+
+void set_seed()
+{
+	FILE *fp;
+	unsigned int seed;
+	fp = fopen("/dev/random", "r");
+	fread(&seed, sizeof seed, 1, fp);
+	srand(seed);
+}
+
 void init_array(int *a)
 {
 	int i;
@@ -103,32 +113,55 @@ void permute_array_with_insertion_sort(int *ori, int *ref)
 	}
 }
 
-void permute_merge_subarrays(int *ori_d, int *ref_d, int *o_sub1, int *r_sub1,
-  int *o_sub2, int *r_sub2, int start, int mid, int end)
+void permute_merge_subarrays(int *ori_d, int *ref_d, int *o_sub1, int *o_sub2,
+  int *r_sub1, int *r_sub2, int size1, int size2)
 {
-	int i, j, size1, size2;
-	size1 = mid - start + 1;
-	size2 = end - mid;
-	for (i = 0, j = 0; i < size1 && j < size2;) {
-		
-void permute_merge_sort_subarray(int *ori_d, int *ref_d, int *ori, int *ref,
-  int start, int end)
-{
-	int mid = (start + end) / 2;
-	int tmp1[mid + 1 - start];
-	int tmp2[end - mid];
-	int tmp3[mid + 1 - start];
-	int tmp4[end - mid];
-	permute_merge_sort_subarray(tmp1, tmp3, ori, ref, start, mid);
-	permute_merge_sort_subarray(tmp2, tmp4, ori, ref, mid + 1, end);
-	permute_merge_subarrays(ori_d, ref_d, tmp1, tmp3, tmp2, tmp4, start,
-	  mid, end);
+	int i, j, k;
+	for (i = 0, j = 0, k = 0; i < size1 && j < size2; k++) {
+		if (r_sub1[i] < r_sub2[j]) {
+			ref_d[k] = r_sub1[i];
+			ori_d[k] = o_sub1[i];
+			i++;
+		} else {
+			ref_d[k] = r_sub2[j];
+			ori_d[k] = o_sub2[j];
+			j++;
+		}
+	}
+	for (; i < size1; i++, k++) {
+		ref_d[k] = r_sub1[i];
+		ori_d[k] = o_sub1[i];
+	}
+	for (; j < size2; j++, k++) {
+		ref_d[k] = r_sub2[j];
+		ori_d[k] = o_sub2[j];
+	}
 }
 
-void permute_array_with_merge_sort(int *dest, int *ori, int *ref)
+void permute_merge_sort_subarray(int *ori_buf, int *ref_buf, int *ori_src,
+  int *ref_src, int size)
+{
+	int half = size / 2;
+	int tmp1[half];
+	int tmp2[half];
+	int tmp3[size - half];
+	int tmp4[size - half];
+	if (size == 1) {
+		*ori_buf = *ori_src;
+		*ref_buf = *ref_src;
+		return;
+	}
+	permute_merge_sort_subarray(tmp1, tmp2, ori_src, ref_src, half);
+	permute_merge_sort_subarray(tmp3, tmp4, ori_src + half, ref_src + half,
+	  size - half);
+	permute_merge_subarrays(ori_buf, ref_buf, tmp1, tmp2, tmp3, tmp4, half,
+	  size - half);
+}
+
+void permute_array_with_merge_sort(int *ori_permuted, int *ori, int *ref)
 {
 	int tmp[NUM_CNT];
-	permute_merge_sort(dest, tmp, ori, ref, 0, NUM_CNT - 1);
+	permute_merge_sort_subarray(ori_permuted, tmp, ori, ref, NUM_CNT);
 }
 
 int main(int argc, char **argv)
@@ -136,6 +169,7 @@ int main(int argc, char **argv)
 	int tmp1[NUM_CNT];
 	int tmp2[NUM_CNT];
 	int tmp3[NUM_CNT];
+	set_seed();
 	memset(tmp2, 0, NUM_CNT * sizeof *tmp2);
 	init_array(tmp1);
 	print_array(tmp1);
