@@ -184,7 +184,28 @@ void permute_array_by_random_in_place(int *dest, int *src)
 	}
 	dest[i] = src[i];
 }
-		
+
+void min_heapify(int *arr, int index)
+{
+	int l, r, tmp;
+	l = index << 1;
+	r = l + 1;
+	tmp = index;
+	if (l <= NUM_CNT && arr[l] < arr[tmp])
+		tmp = l;
+	if (r <= heap_size && arr[r] < arr[tmp])
+		tmp = r;
+	if (tmp != index) {
+		tmp1 = arr[index];
+		arr[index] = arr[tmp];
+		arr[tmp] = tmp1;
+		min_heapify(arr, tmp);
+	}
+}
+
+void heap_sort(int *arr)
+{
+}
 
 int main(int argc, char **argv)
 {
@@ -204,6 +225,8 @@ int main(int argc, char **argv)
 	permute_array_by_merge_sort(tmp3, tmp2, tmp1);
 */
 	permute_array_by_random_in_place(tmp3, tmp2);
+
+	heap_sort(tmp3);
 	
 	print_array(tmp3);
 	return 0;
