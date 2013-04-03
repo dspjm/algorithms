@@ -2,9 +2,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#define NUM_CNT 300
+#define NUM_CNT 10
 #define RANDOM_RANGE 500
 
+/*#define DEB_IND*/
+#ifdef DEB_IND
+#define DEB_PRINT(x) printf(#x" = %d\n", x)
+#else
+#define DEB_PRINT
+#endif
 
 
 
@@ -158,17 +164,33 @@ void permute_merge_sort_subarray(int *ori_buf, int *ref_buf, int *ori_src,
 	  size - half);
 }
 
-void permute_array_with_merge_sort(int *ori_permuted, int *ori, int *ref)
+void permute_array_by_merge_sort(int *ori_permuted, int *ori, int *ref)
 {
 	int tmp[NUM_CNT];
 	permute_merge_sort_subarray(ori_permuted, tmp, ori, ref, NUM_CNT);
 }
 
+void permute_array_by_random_in_place(int *dest, int *src)
+{
+	int i;
+	int tmp, tmp1;
+	set_seed();
+	for (i = 0; i < NUM_CNT - 1; i++) {
+		tmp = rand() % (NUM_CNT - i);
+		tmp1 = src[i];
+		src[i] = src[i + tmp];
+		src[i + tmp] = tmp1;
+		dest[i] = src[i];
+	}
+	dest[i] = src[i];
+}
+		
+
 int main(int argc, char **argv)
 {
-	int tmp1[NUM_CNT];
-	int tmp2[NUM_CNT];
-	int tmp3[NUM_CNT];
+	int tmp1[NUM_CNT];   /*random array*/
+	int tmp2[NUM_CNT];   /*sorted array*/
+	int tmp3[NUM_CNT];   /*permuted array*/
 	set_seed();
 	memset(tmp2, 0, NUM_CNT * sizeof *tmp2);
 	init_array(tmp1);
@@ -178,7 +200,11 @@ int main(int argc, char **argv)
 */
 	merge_sort(tmp1, tmp2);
 	print_array(tmp2);
-	permute_array_with_merge_sort(tmp3, tmp2, tmp1);
+/*
+	permute_array_by_merge_sort(tmp3, tmp2, tmp1);
+*/
+	permute_array_by_random_in_place(tmp3, tmp2);
+	
 	print_array(tmp3);
 	return 0;
 }
