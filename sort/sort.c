@@ -185,26 +185,90 @@ void permute_array_by_random_in_place(int *dest, int *src)
 	dest[i] = src[i];
 }
 
-void min_heapify(int *arr, int index)
+/*all indices start from one when not accessing array*/
+void min_heapify(int *arr, int index, int heap_size)
 {
-	int l, r, tmp;
+	int l, r, tmp, tmp1;
 	l = index << 1;
 	r = l + 1;
 	tmp = index;
-	if (l <= NUM_CNT && arr[l] < arr[tmp])
+	if (l <= heap_size && arr[l - 1] < arr[tmp - 1])
 		tmp = l;
-	if (r <= heap_size && arr[r] < arr[tmp])
+	if (r <= heap_size && arr[r - 1] < arr[tmp - 1])
 		tmp = r;
 	if (tmp != index) {
-		tmp1 = arr[index];
-		arr[index] = arr[tmp];
-		arr[tmp] = tmp1;
-		min_heapify(arr, tmp);
+		tmp1 = arr[index - 1];
+		arr[index - 1] = arr[tmp - 1];
+		arr[tmp - 1] = tmp1;
+		min_heapify(arr, tmp, heap_size);
 	}
 }
 
+/*all indices start from one when not accessing array*/
+void max_heapify(int *arr, int index, int heapsize)
+{
+	int l, r, max, tmp;
+	l = index << 1;
+	r = l + 1;
+	max = index;
+	if (l <= heapsize && arr[max - 1] < arr[l - 1])
+		max = l;
+	if (r <= heapsize && arr[max - 1] < arr[r - 1])
+		max = r;
+	if (max != index) {
+		tmp = arr[index - 1];
+		arr[index - 1] = arr[max - 1];
+		arr[max - 1] = tmp;
+		max_heapify(arr, max, heapsize);
+	}
+}
+
+/*all indices start from one when not accessing array*/
 void heap_sort(int *arr)
 {
+	int tmp, i, tmp1;
+	int heap_size;
+	heap_size = NUM_CNT;
+	/*build heap*/
+	tmp = heap_size / 2;
+	for (i = tmp; i > 0; i--) {
+		max_heapify(arr, i, heap_size);
+	}
+	/*sort array*/
+	for (i = heap_size; i >= 2; i--) {
+		tmp1 = arr[0];
+		arr[0] = arr[i - 1];
+		arr[i - 1] = tmp1;
+		heap_size--;
+		max_heapify(arr, 1, heap_size);
+	}
+}
+
+void quick_subsort(int *a, int start, int end)
+{
+	int i, j, p, tmp;
+	printf("sorting from %d to %d\n", start, end);
+	if (start >= end)
+		return;
+	p = a[end - 1];
+	for (i = start - 1, j = start; j < end; j++) {
+		if (a[j - 1] < p) {
+			i++;
+			tmp = a[i - 1];
+			a[i - 1] = a[j - 1];
+			a[j - 1] = tmp;
+		}
+	}
+	tmp = a[j - 1];
+	a[j - 1] = a[i];
+	a[i] = tmp;
+	quick_subsort(a, start, i);
+	quick_subsort(a, i + 1, end);
+}
+
+void quick_sort(int *a)
+{
+	quick_subsort(a, 1, NUM_CNT);
 }
 
 int main(int argc, char **argv)
@@ -225,9 +289,10 @@ int main(int argc, char **argv)
 	permute_array_by_merge_sort(tmp3, tmp2, tmp1);
 */
 	permute_array_by_random_in_place(tmp3, tmp2);
-
+/*
 	heap_sort(tmp3);
-	
+*/
+	quick_sort(tmp3);
 	print_array(tmp3);
 	return 0;
 }
