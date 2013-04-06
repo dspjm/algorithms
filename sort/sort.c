@@ -4,7 +4,7 @@
 #include <time.h>
 
 #define NUM_CNT 100
-#define RANDOM_RANGE 2000
+#define RANDOM_RANGE 2000 /*actual range is 0 to 1999*/
 
 /*#define DEB_IND*/
 #ifdef DEB_IND
@@ -25,7 +25,6 @@ void set_seed()
 	fread(&seed, sizeof seed, 1, fp);
 */
 	time((time_t *)&seed);
-	printf("time is %d\n", seed);
 	srand(seed);
 }
 
@@ -307,6 +306,18 @@ void random_quick_sort(int *a)
 	random_quick_subsort(a, 1, NUM_CNT);
 }
 
+void counting_sort(int *a, int *b)
+{
+	int i, j;
+	int tmp[RANDOM_RANGE] = {};
+	for (i = 0; i < NUM_CNT; i++)
+		tmp[a[i]]++;
+	for (j = 1; j < RANDOM_RANGE; j++)
+		tmp[j] += tmp[j - 1];
+	for (i = NUM_CNT - 1; i >= 0; i--)
+		b[--tmp[a[i]]] = a[i];    /*take notice here*/
+}
+
 int main(int argc, char **argv)
 {
 	int tmp1[NUM_CNT];   /*random array*/
@@ -328,11 +339,10 @@ int main(int argc, char **argv)
 	print_array(tmp3);
 /*
 	heap_sort(tmp3);
-*/
-/*
 	quick_sort(tmp3);
-*/
 	random_quick_sort(tmp3);
-	print_array(tmp3);
+*/
+	counting_sort(tmp3, tmp2);
+	print_array(tmp2);
 	return 0;
 }
