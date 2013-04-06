@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
-#define NUM_CNT 10
-#define RANDOM_RANGE 500
+#define NUM_CNT 100
+#define RANDOM_RANGE 2000
 
 /*#define DEB_IND*/
 #ifdef DEB_IND
@@ -17,10 +18,14 @@
 
 void set_seed()
 {
+	unsigned int seed, seed1;
+/*
 	FILE *fp;
-	unsigned int seed;
 	fp = fopen("/dev/random", "r");
 	fread(&seed, sizeof seed, 1, fp);
+*/
+	time((time_t *)&seed);
+	printf("time is %d\n", seed);
 	srand(seed);
 }
 
@@ -262,13 +267,44 @@ void quick_subsort(int *a, int start, int end)
 	tmp = a[j - 1];
 	a[j - 1] = a[i];
 	a[i] = tmp;
-	quick_subsort(a, start, i);
+	quick_subsort(a, start, i - 1);
 	quick_subsort(a, i + 1, end);
 }
 
 void quick_sort(int *a)
 {
 	quick_subsort(a, 1, NUM_CNT);
+}
+
+void random_quick_subsort(int *a, int start, int end)
+{
+	int tmp, tmp1, i, j, p;
+	if (start >= end)
+		return;
+	tmp = rand() % (end - start + 1);
+	tmp += start;
+	tmp1 = a[end - 1];
+	a[end - 1] = a[tmp - 1];
+	a[tmp - 1] = tmp1;
+	p = a[end - 1];
+	for (j = start, i = start - 1; j < end; j++) {
+		if (a[j - 1] < p) {
+			i++;
+			tmp1 = a[i - 1];
+			a[i - 1] = a[j - 1];
+			a[j - 1] = tmp1;
+		}
+	}
+	tmp1 = a[i];
+	a[i] = a[j - 1];
+	a[j - 1] = tmp1;
+	random_quick_subsort(a, start, i - 1);
+	random_quick_subsort(a, i + 1, end);
+}
+
+void random_quick_sort(int *a)
+{
+	random_quick_subsort(a, 1, NUM_CNT);
 }
 
 int main(int argc, char **argv)
@@ -289,10 +325,14 @@ int main(int argc, char **argv)
 	permute_array_by_merge_sort(tmp3, tmp2, tmp1);
 */
 	permute_array_by_random_in_place(tmp3, tmp2);
+	print_array(tmp3);
 /*
 	heap_sort(tmp3);
 */
+/*
 	quick_sort(tmp3);
+*/
+	random_quick_sort(tmp3);
 	print_array(tmp3);
 	return 0;
 }
