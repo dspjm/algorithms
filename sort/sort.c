@@ -6,6 +6,7 @@
 
 #define NUM_CNT 10
 #define RANDOM_RANGE 2000 /*actual range is 0 to 1999*/
+#define BUCKET_NUM 100
 
 /*#define DEB_IND*/
 #ifdef DEB_IND
@@ -411,11 +412,56 @@ void radix_sort_on_merge_sort(int *a, int base_num)
 	}
 }
 
+struct b_node {
+	double value;
+	struct b_node *next;
+}
+
+void bucket_sort_init(int *a, int *b)
+{
+	int i;
+	for (i = 0; i < NUM_CNT; i++) 
+		b[i] = a[i] / RANDOM_RANGE;
+}
+
+void add_bucketnode(double n, struct b_node **bpp)
+{
+	struct b_node *tmp;
+	tmp = malloc(sizeof *tmp);
+	tmp->value = n;
+	tmp->next = NULL;
+	while (*bpp != NULL)
+		bpp = &(*bpp)->next;
+	*bpp = tmp;
+}
+
+void insertion_sort_bucket(struct b_node **bpp)
+{
+	struct b_node **cbpp, **abpp, **bbpp;
+	cbpp = &(*bpp)->next;
+	while (*tmp != NULL) {
+		
+
+void bucket_sort(int *a)
+{
+	int i, bucket_index;
+	struct b_node *buckets[BUCKET_NUM] = {};
+	for (i = 0; i < NUM_CNT; i++) {
+		bucket_index = a[i] * BUCKET_NUM;
+		add_bucketnode(a[i], buckets + bucket_index)
+	}
+	for (i = 0; i < BUCKET_NUM; i++) {
+		insertion_sort_bucket(bucket + i);
+	}
+	free_buckets(buckets);
+}
+
 int main(int argc, char **argv)
 {
-	int tmp1[NUM_CNT];   /*random array*/
-	int tmp2[NUM_CNT];   /*sorted array*/
-	int tmp3[NUM_CNT];   /*permuted array*/
+	int tmp1[NUM_CNT];    /*random array*/
+	int tmp2[NUM_CNT];    /*sorted array*/
+	int tmp3[NUM_CNT];    /*permuted array*/
+	double tmp4[NUM_CNT];    /*array for bucket sort*/
 	set_seed();
 	memset(tmp2, 0, NUM_CNT * sizeof *tmp2);
 	init_array(tmp1);
@@ -435,8 +481,11 @@ int main(int argc, char **argv)
 	quick_sort(tmp3);
 	random_quick_sort(tmp3);
 	counting_sort(tmp3, tmp2);
-*/
 	radix_sort_on_merge_sort(tmp3, 4);
-	print_array(tmp3);
+*/
+	bucket_sort_init(tmp4, tmp3);
+	print_array(tmp4);
+	bucket_sort(tmp4);
+	print_array(tmp4);
 	return 0;
 }
