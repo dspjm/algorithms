@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
 
-#define NUM_CNT 100
+#define NUM_CNT 10
 #define RANDOM_RANGE 2000 /*actual range is 0 to 1999*/
 
 /*#define DEB_IND*/
@@ -41,7 +42,7 @@ void print_array(int *a)
 	int i;
 	printf("array is: \n");
 	for (i = 0; i < NUM_CNT; i++) {
-		printf(" %i", a[i]);
+		printf(" %x", a[i]);
 	}
 	printf("\n");
 }
@@ -251,7 +252,6 @@ void heap_sort(int *arr)
 void quick_subsort(int *a, int start, int end)
 {
 	int i, j, p, tmp;
-	printf("sorting from %d to %d\n", start, end);
 	if (start >= end)
 		return;
 	p = a[end - 1];
@@ -318,6 +318,99 @@ void counting_sort(int *a, int *b)
 		b[--tmp[a[i]]] = a[i];    /*take notice here*/
 }
 
+int get_masked(int num, int mask)
+{
+	return num & mask;
+}
+
+/* in place quick sort is intrinsically unstable, don't use it.
+void radix_quick_subsort(int *a, int start, int end, int mask)
+{
+	int p, tmp, i, j;
+	if (start >= end)
+		return;
+	p = a[end - 1] & mask;
+	printf("radix_quick_subsorting from %d to %d with mask %x and pivot %x\n", start, end, mask, p);
+	for (j = start, i = j - 1; j < end; j++) {
+		if (get_masked(a[j - 1], mask) < p) {
+			printf("masked a[%d] = %x\n", j, a[j - 1]);
+			i++;
+			tmp = a[j - 1];
+			a[j - 1] = a[i - 1];
+			a[i - 1] = tmp;
+		}
+	}
+	tmp = a[i];
+	a[i] = a[end - 1];
+	a[end - 1] = tmp;
+	radix_quick_subsort(a, start, i, mask);
+	radix_quick_subsort(a, i + 2, end, mask);
+}
+
+void radix_quick_sort(int *a, int i)
+{
+	int mask;
+	mask = 0xf << i * 4;
+	radix_quick_subsort(a, 1, NUM_CNT, mask);
+}
+
+void radix_sort_on_quick_sort(int *a, int base_cnt)
+{
+	int i;
+	for (i = 0; i < base_cnt; i++) {
+		radix_quick_sort(a, i);
+		printf("after %dth sort:\n", i + 1);
+		print_array(a);
+	}
+}
+*/
+
+void radix_merge_splice(int *a, int start, int mid, int end, int mask)
+{
+	int i, j, k;
+	int tmp1[mid - start + 1], tmp2[end - mid];
+	int tmp1len = mid - start + 1, tmp2len = end - mid;
+	for (j = 0; j < tmp1len; j++)
+		tmp1[j] = a[start - 1 + j];
+	for (k = 0; k < tmp2len; k++)
+		tmp2[k] = a[mid + k];
+	for (i = start - 1, j = 0, k = 0; j < tmp1len && k < tmp2len; i++) {
+		if ((tmp1[j] & mask) <= (tmp2[k] & mask)) {
+			a[i] = tmp1[j];
+			j++;
+		} else {
+			a[i] = tmp2[k];
+			k++;
+		}
+	}
+	if (j < tmp1len)
+		for (; j < tmp1len; j++, i++)
+			a[i] = tmp1[j];
+	else if (k < tmp2len)
+		for (; k < tmp2len; k++, i++)
+			a[i] = tmp2[k];
+		
+}
+
+void radix_merge_subsort(int *a, int start, int end, int mask)
+{
+	int m = (start + end) / 2;
+	if (start >= end)
+		return;
+	radix_merge_subsort(a, start, m, mask);
+	radix_merge_subsort(a, m + 1, end, mask);
+	radix_merge_splice(a, start, m, end, mask);
+}
+
+void radix_sort_on_merge_sort(int *a, int base_num)
+{
+	int i, mask;
+	for (i = 0; i < base_num; i++) {
+		mask = 0xf << 4 * i;
+		radix_merge_subsort(a, 1, NUM_CNT, mask);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	int tmp1[NUM_CNT];   /*random array*/
@@ -341,8 +434,9 @@ int main(int argc, char **argv)
 	heap_sort(tmp3);
 	quick_sort(tmp3);
 	random_quick_sort(tmp3);
-*/
 	counting_sort(tmp3, tmp2);
-	print_array(tmp2);
+*/
+	radix_sort_on_merge_sort(tmp3, 4);
+	print_array(tmp3);
 	return 0;
 }
