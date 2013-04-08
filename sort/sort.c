@@ -43,7 +43,7 @@ void print_array(int *a)
 	int i;
 	printf("array is: \n");
 	for (i = 0; i < NUM_CNT; i++) {
-		printf(" %x", a[i]);
+		printf(" %d", a[i]);
 	}
 	printf("\n");
 }
@@ -415,13 +415,13 @@ void radix_sort_on_merge_sort(int *a, int base_num)
 struct b_node {
 	double value;
 	struct b_node *next;
-}
+};
 
-void bucket_sort_init(int *a, int *b)
+void bucket_sort_init(double *buf, int *ori)
 {
 	int i;
 	for (i = 0; i < NUM_CNT; i++) 
-		b[i] = a[i] / RANDOM_RANGE;
+		buf[i] = (double)ori[i] / RANDOM_RANGE;
 }
 
 void add_bucketnode(double n, struct b_node **bpp)
@@ -437,23 +437,72 @@ void add_bucketnode(double n, struct b_node **bpp)
 
 void insertion_sort_bucket(struct b_node **bpp)
 {
-	struct b_node **cbpp, **abpp, **bbpp;
-	cbpp = &(*bpp)->next;
-	while (*tmp != NULL) {
-		
+	struct b_node *cbp, *pcbp, **pbpp, *ibp;
+	if (*bpp == NULL || (*bpp)->next == NULL)
+		return;
+	pcbp = *bpp;
+	cbp = pcbp->next;
+	while (cbp != NULL) {
+		pbpp = bpp;
+		ibp = (*pbpp)->next;
+		while (ibp != cbp) {
+			if (ibp->value > cbp->value) {
+				pcbp->next = cbp->next;
+				cbp->next = ibp;
+				*pbpp = cbp;
+			} else {
+				pbpp = &(*pbpp)->next;
+				ibp = (*pbpp)->next;
+			}
+		}
+		pcbp = pcbp->next;
+		cbp = pcbp->next;
+	}
+}
 
-void bucket_sort(int *a)
+void free_buckets(struct b_node **arr, int size)
 {
-	int i, bucket_index;
-	struct b_node *buckets[BUCKET_NUM] = {};
+	int i;
+	struct b_node *tmp;
+	for (i = 0; i < size; i++)
+		for (tmp = arr[i]; tmp; tmp = tmp->next)
+			free(tmp);
+}
+
+void bucket_sort(double *a)
+{
+	int i, j, bucket_index;
+	struct b_node *buckets[BUCKET_NUM] = {}, *tmp;
 	for (i = 0; i < NUM_CNT; i++) {
 		bucket_index = a[i] * BUCKET_NUM;
-		add_bucketnode(a[i], buckets + bucket_index)
+		add_bucketnode(a[i], buckets + bucket_index);
 	}
 	for (i = 0; i < BUCKET_NUM; i++) {
-		insertion_sort_bucket(bucket + i);
+		insertion_sort_bucket(buckets + i);
 	}
-	free_buckets(buckets);
+	for (i = 0, j = 0; i < BUCKET_NUM; i++) {
+		tmp =  buckets[i];
+		for (; tmp; tmp = tmp->next, j++)
+			a[j] = tmp->value;
+	}
+	free_buckets(buckets, BUCKET_NUM);
+}
+
+void print_double_array(double *buf, int size)
+{
+	int i;
+	printf("double array is:\n");
+	for (i = 0; i < size; i++) {
+		printf("%g ", buf[i]);
+	}
+	printf("\n");
+}
+void bucket_sort_restore(double *a)
+{
+	int i;
+	for (i = 0; i < NUM_CNT; i++) {
+		a[i] *= RANDOM_RANGE;
+	}
 }
 
 int main(int argc, char **argv)
@@ -484,8 +533,10 @@ int main(int argc, char **argv)
 	radix_sort_on_merge_sort(tmp3, 4);
 */
 	bucket_sort_init(tmp4, tmp3);
-	print_array(tmp4);
+	print_double_array(tmp4, NUM_CNT);
 	bucket_sort(tmp4);
-	print_array(tmp4);
+	print_double_array(tmp4, NUM_CNT);
+	bucket_sort_restore(tmp4);
+	print_double_array(tmp4, NUM_CNT);
 	return 0;
 }
