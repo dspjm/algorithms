@@ -30,17 +30,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <string.h>
+#include <time.h>
+#include <limits.h>
 
-#define NUM_CNT 200
+#define NUM_CNT 30
 #define RAND_MOD 3000
 
 void set_seed()
 {
-	unsigned int tmp;
-	time((time_t *)&tmp);
-	srand(tmp);
+	long tmp;
+	time(&tmp);
+	srand(200);
 }
 
 void get_random_array(int *a, int size)
@@ -172,6 +173,66 @@ void select_ith_least(int *a, int size, int *result, int index)
 	*result = a[k];
 }
 
+void insertion_sort(int *a, int start, int end)
+{
+	int i, j, tmp;
+	for (i = start + 1; i <= end; i++) {
+		for (j = i; j > start && a[j - 1] < a[j - 2]; j--) {
+			tmp = a[j - 1];
+			a[j - 1] = a[j - 2];
+			a[j - 2] = tmp;
+		}
+	}
+}
+
+int partition_array(int *a, int size, int p)
+{
+	int i, j, tmp;
+	for (i = 1, j = 0; i <= size; i++) {
+		if (a[i] < p) {
+			j++;
+			tmp = a[i - 1];
+			a[i - 1] = a[j - 1];
+			a[j - 1] = tmp;
+		}
+	}
+	return j + 1;
+}
+
+void median_select(int *a, int index, int size, int *result)
+{
+	int tmp, tmp1, *tmp2, tmp3, tmp4;
+	int i, j;
+	if (!size)
+		return;
+	if (size == 1) {
+		*result = a[0];
+		return;
+	}
+	tmp = size % 5;
+	tmp1 = size / 5;
+	if (tmp)
+		tmp1++;
+	tmp2 = malloc(tmp1 * sizeof *tmp2);
+	for (i = 1, j = 1; size - i + 1 > tmp; i += 5, j++) {
+		insertion_sort(a, i, i + 4);
+		tmp2[j - 1] = a[i + 1];
+	}
+	if (tmp) {
+		insertion_sort(a, i, i + tmp - 1);
+		tmp2[j - 1] = a[i + tmp / 2 - 1];
+	}
+	median_select(tmp2, tmp1 / 2, tmp1, &tmp3);
+	tmp4 = partition_array(a, size, tmp3);
+	if (tmp4 == index)
+		*result = a[index - 1];
+	else if (index < tmp4)
+		median_select(a, index, tmp4 - 1, result);
+	else if (index > tmp4)
+		median_select(a + tmp4, index - tmp4, size - tmp4, result);
+	free(tmp2);
+}
+
 int main(int argc, int **argv)
 {
 	int tmp[NUM_CNT];
@@ -179,7 +240,7 @@ int main(int argc, int **argv)
 	int tmpmin, tmpmax, tmpret;
 	int tmp_index;
 	set_seed();
-	get_random_array(tmp, NUM_CNT);
+	get_random_array(tmp1, NUM_CNT);
 	memcpy(tmp1, tmp, NUM_CNT * sizeof(int));
 	print_array(tmp, NUM_CNT);
 	heap_sort(tmp1, NUM_CNT);
@@ -189,7 +250,10 @@ int main(int argc, int **argv)
 	printf("max = %d, min = %d\n", tmpmax, tmpmin);
 */
 	tmp_index = rand() % NUM_CNT + 1;
+/*
 	select_ith_least(tmp, NUM_CNT, &tmpret, tmp_index);
+*/
+	median_select(tmp, tmp_index, NUM_CNT, &tmpret);
 	printf("%dth least number selected: %d\n", tmp_index, tmpret);
 	return 0;
 }

@@ -20,7 +20,7 @@
 
 void set_seed()
 {
-	unsigned int seed, seed1;
+	long seed;
 /*
 	FILE *fp;
 	fp = fopen("/dev/random", "r");
