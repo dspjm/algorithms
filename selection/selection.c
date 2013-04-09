@@ -34,14 +34,14 @@
 #include <time.h>
 #include <limits.h>
 
-#define NUM_CNT 30
+#define NUM_CNT 100
 #define RAND_MOD 3000
 
 void set_seed()
 {
 	long tmp;
 	time(&tmp);
-	srand(200);
+	srand((int)tmp);
 }
 
 void get_random_array(int *a, int size)
@@ -85,7 +85,6 @@ void heap_sort(int *a, int size)
 	int tmp;
 	for (i = size / 2; i > 0; i--)
 		max_heapify(a, i, size);
-	print_array(a, size);
 	for (; size > 0;size--) {
 		tmp = a[size - 1];
 		a[size - 1] = a[0];
@@ -147,30 +146,31 @@ int randomized_partition(int *a, int start, int end)
 	j++;
 	tmp1 = a[j - 1];
 	a[j - 1] = a[end - 1];
-	a[end - 1] = a[j - 1];
+	a[end - 1] = tmp1;
 	return j;
 }
 
 void select_ith_least(int *a, int size, int *result, int index)
 {
 	int start, end, k;
-	if (index > size || index < 1)
+	if (index > size || index < 1 || size <= 0)
 		return;
+	if (size == 1) {
+		*result = a[0];
+		return;
+	}
 	start = 1;
 	end = size;
+	k = 0;
 	while (k != index) {
 		k = randomized_partition(a, start, end);
-		if (start > end)
-			return;
 		if (index < k) {
-			start = start;
 			end = k - 1;
 		} else {
 			start = k + 1;
-			end = end;
 		}
 	}
-	*result = a[k];
+	*result = a[k - 1];
 }
 
 void insertion_sort(int *a, int start, int end)
@@ -188,15 +188,27 @@ void insertion_sort(int *a, int start, int end)
 int partition_array(int *a, int size, int p)
 {
 	int i, j, tmp;
-	for (i = 1, j = 0; i <= size; i++) {
-		if (a[i] < p) {
+	for (i = 1, j = 0; i < size; i++) {
+		if (a[i - 1] < p) {
 			j++;
 			tmp = a[i - 1];
 			a[i - 1] = a[j - 1];
 			a[j - 1] = tmp;
+		} else if (a[i - 1] == p) {
+			a[i - 1] = a[size - 1];
+			a[size - 1] = p;
+			if (a[i - 1] < p) {
+				j++;
+				tmp = a[i - 1];
+				a[i - 1] = a[j - 1];
+				a[j - 1] = tmp;
+			}
 		}
 	}
-	return j + 1;
+	j++;
+	a[size - 1] = a[j - 1];
+	a[j - 1] = p;
+	return j;
 }
 
 void median_select(int *a, int index, int size, int *result)
@@ -224,6 +236,10 @@ void median_select(int *a, int index, int size, int *result)
 	}
 	median_select(tmp2, tmp1 / 2, tmp1, &tmp3);
 	tmp4 = partition_array(a, size, tmp3);
+/*
+	printf("select index = %d, pivot is %d, pivot index = %d, size  = %d\n",index, tmp3, tmp4, size);
+	print_array(a, size);
+*/
 	if (tmp4 == index)
 		*result = a[index - 1];
 	else if (index < tmp4)
@@ -235,15 +251,18 @@ void median_select(int *a, int index, int size, int *result)
 
 int main(int argc, int **argv)
 {
-	int tmp[NUM_CNT];
-	int tmp1[NUM_CNT];
+	int tmp[NUM_CNT];    /*original array*/
+	int tmp1[NUM_CNT];    /*array for sort*/
 	int tmpmin, tmpmax, tmpret;
 	int tmp_index;
+	int tmp2;
 	set_seed();
-	get_random_array(tmp1, NUM_CNT);
+	get_random_array(tmp, NUM_CNT);
 	memcpy(tmp1, tmp, NUM_CNT * sizeof(int));
+	puts("Original array:");
 	print_array(tmp, NUM_CNT);
 	heap_sort(tmp1, NUM_CNT);
+	puts("Sorted array:");
 	print_array(tmp1, NUM_CNT);
 /*
 	select_min_and_max(tmp, NUM_CNT, &tmpmin, &tmpmax);
@@ -251,9 +270,20 @@ int main(int argc, int **argv)
 */
 	tmp_index = rand() % NUM_CNT + 1;
 /*
-	select_ith_least(tmp, NUM_CNT, &tmpret, tmp_index);
 */
+	select_ith_least(tmp, NUM_CNT, &tmpret, tmp_index);
+	printf("%dth least number selected: %d\n", tmp_index, tmpret);
+	tmp2 = tmpret;
 	median_select(tmp, tmp_index, NUM_CNT, &tmpret);
 	printf("%dth least number selected: %d\n", tmp_index, tmpret);
+	if (tmp2 != tmpret) {
+		puts("***********************************************"
+		     "*            Oops, they don't match          *"
+		     "***********************************************");
+	}
+/*
+	puts("After select array:");
+	print_array(tmp, NUM_CNT);
+*/
 	return 0;
 }
