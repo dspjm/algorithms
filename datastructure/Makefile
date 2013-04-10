@@ -1,0 +1,3 @@
+CFLAGS+=-g
+
+datastructure:
