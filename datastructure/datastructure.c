@@ -33,7 +33,7 @@
 #include <time.h>
 #include <stdlib.h>
 
-#define ARRAY_NUM MAX_ELEMENT_NUM
+#define ARRAY_NUM 100
 #define MAX_ELEMENT_NUM 500
 #define RAND_MOD 1000
 
@@ -48,6 +48,7 @@ void set_seed()
 void get_rand_array(int *tmp, int size)
 {
 	int i;
+	set_seed();
 	for (i = 0; i < size; i++) {
 		tmp[i] = rand() % RAND_MOD;
 	}
@@ -171,13 +172,85 @@ struct array_sentinel_llist {
 
 void init_array_sentinel_llist(struct array_sentinel_llist *l)
 {
+	int i;
 	memset(l, 0, sizeof *l);
 	l->head = MAX_ELEMENT_NUM;
 	l->prev[l->head] = l->head;
 	l->next[l->head] = l->head;
 	l->free_head = MAX_ELEMENT_NUM + 1;
-	l->prev[l->free_head] = l->free_head;
-	l->next[l->free_head] = l->free_head;
+	for (i = 0; i < MAX_ELEMENT_NUM; i++) {
+		l->prev[i] = i - 1;
+		l->next[i] = i + 1;
+	}
+	l->prev[0] = l->free_head;
+	l->next[MAX_ELEMENT_NUM - 1] = l->free_head;
+	l->prev[l->free_head] = MAX_ELEMENT_NUM - 1;
+	l->next[l->free_head] = 0;
+}
+
+int array_sentinel_llist_is_empty(struct array_sentinel_llist *l)
+{
+	if (l->next[l->head] == l->head)
+		return 1;
+	return 0;
+}
+
+int array_sentinel_llist_is_full(struct array_sentinel_llist *l)
+{
+	if (l->next[l->free_head] == l->free_head)
+		return 1;
+	return 0;
+}
+
+int search_array_sentinel_llist(struct array_sentinel_llist *l, int n)
+{
+	int i;
+	if (array_sentinel_llist_is_empty(l)) {
+		fprintf(stderr, "list is empty\n");
+		return -1;
+	}
+	for (i = l->next[l->head]; i != l->head; i = l->next[i]) {
+		if (l->key[i] == n)
+			return i;
+	}
+	return -1;
+}
+
+int insert_array_sentinel_llist(struct array_sentinel_llist *l, int value)
+{
+	int tmp, tmp1, tmp2;
+	if (array_sentinel_llist_is_full(l)) {
+		fprintf(stderr, "list is full\n");
+		return -1;
+	}
+	tmp = l->next[l->free_head];
+	tmp1 = l->next[l->head];
+	tmp2 = l->next[tmp];
+	l->key[tmp] = value;
+	l->prev[tmp] = l->head;
+	l->next[tmp] = tmp1;
+	l->prev[tmp1] = tmp;
+	l->next[l->head] = tmp;
+	l->next[l->free_head] = tmp2;
+	l->prev[tmp2] = l->free_head;
+	return 0;
+}
+
+void print_array_sentinel_llist(struct array_sentinel_llist l)
+{
+	int i;
+	printf("used list:\n");
+	for (i = l.next[l.head]; l.next[i] != l.head; i = l.next[i]) {
+		printf("%d -> ", l.key[i]);
+	}
+	if (i != l.head)
+		printf("%d\n", l.key[i]);
+	printf("free list:\n");
+	for (i = l.next[l.free_head]; l.next[i] != l.free_head; i = l.next[i]) {
+		printf("%d -> ", l.key[i]);
+	}
+	if (i != l.free_head)
+		printf("%d\n", l.key[i]);
 }
 
 int main(int argc, int **argv)
@@ -186,9 +259,9 @@ int main(int argc, int **argv)
 	struct simple_stack tmp1;
 	struct simple_queue tmp2;
 	struct array_sentinel_llist tmp3;
+	int tmp4, tmp5;
 	int i;
-	get_rand_array(tmp, ARRAY_NUM);
-/*
+	get_rand_array(tmp, ARRAY_NUM); /*
 	init_simplestack(&tmp1);
 	puts("array befor stack:");
 	print_array(tmp, ARRAY_NUM);
@@ -216,7 +289,16 @@ int main(int argc, int **argv)
 	puts("array after queue:");
 	print_array(tmp, ARRAY_NUM);
 */
+	puts("array befor list:");
+	print_array(tmp, ARRAY_NUM);
 	init_array_sentinel_llist(&tmp3);
-	search_array_sentinel
+	for (i = 0; i < ARRAY_NUM; i++) {
+		if (insert_array_sentinel_llist(&tmp3, tmp[i]) < 0) {
+			fprintf(stderr, "failed to insert into sentinel llist\n");
+		return 1;
+		}
+	}
+	print_array_sentinel_llist(tmp3);
+//	tmp5 = search_array_sentinel_llist(&tmp3, tmp4);
 	return 0;
 }
