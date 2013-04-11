@@ -36,9 +36,11 @@
 
 #define ARRAY_NUM 100
 #define MAX_ELEMENT_NUM 500
-#define RAND_MOD 1000
+#define RAND_MOD (1 << 20)
 #define CMHT_SLOTS_NUM 8
 #define CMHT_HASH_POWER 3
+#define DHO_KEY_NUM_POWER 8
+#define DHO_KEY_NUM (1 << DHO_KEY_NUM_POWER)
 
 
 void set_seed()
@@ -324,6 +326,80 @@ void print_cmht(struct cm_hash_table *ht)
 	}
 }
 
+/*double hashing open addressing hash table*/
+struct dho_ht {
+	int keys[DHO_KEY_NUM];
+	unsigned int s;
+};
+
+void init_dhoht(struct dho_ht *ht)
+{
+	int i;
+	for (i = 0; i < DHO_KEY_NUM; i++)
+		ht->keys[i] = -1;
+	ht->s = rand() << 1 + rand() % 2;
+}
+
+unsigned int dhoht_hash(struct dho_ht *ht, int key, int i)
+{
+	int hash1, hash2;
+	hash1 = key % DHO_KEY_NUM;
+	hash2 = ((key * ht->s) << ((sizeof(int) * 8) - DHO_KEY_NUM_POWER));
+	hash2  = i * ((hash2 << 1) + 1);
+	return (hash1 + hash2) % DHO_KEY_NUM;
+}
+
+int insert_dhoht(struct dho_ht *ht, int key)
+{
+	int i;
+	int tmp;
+	for (i = 0; i < DHO_KEY_NUM; i++) {
+		tmp = dhoht_hash(ht, key, i);
+		if (ht->keys[tmp] < 0) {
+			ht->keys[tmp] = key;
+			return tmp;
+		}
+	}
+	fprintf(stderr, "hash table full\n");
+	return -1;
+}
+
+int search_dhoht(struct dho_ht *ht, int key)
+{
+	int i;
+	int tmp;
+	for (i = 0; i < DHO_KEY_NUM; i++) {
+		tmp = dhoht_hash(ht, key, i);
+		if (ht->keys[tmp] == key)
+			return tmp;
+		else if (ht->keys[tmp] == -1)
+			break;
+	}
+	fprintf(stderr, "can't find key\n");
+	return -1;
+}
+
+int delete_dhoht(struct dho_ht *ht, int key)
+{
+	int tmp;
+	tmp = search_dhoht(ht, key);
+	if (tmp == -1) {
+		fprintf(stderr, "can't delete key\n");
+		return -1;
+	}
+	ht->keys[tmp] = -2;
+	return 0;
+}
+
+void print_dhoht(struct dho_ht *ht)
+{
+	int i;
+	printf("dhoht:\n");
+	for (i = 0; i < DHO_KEY_NUM; i++)
+		printf("%d ", ht->keys[i]);
+	puts("");
+}
+
 int main(int argc, int **argv)
 {
 	int tmp[ARRAY_NUM];
@@ -331,6 +407,7 @@ int main(int argc, int **argv)
 	struct simple_queue tmp2;
 	struct array_sentinel_llist tmp3;
 	struct cm_hash_table tmp4;
+	struct dho_ht tmp5;
 	int i;
 	get_rand_array(tmp, ARRAY_NUM); /*
 	init_simplestack(&tmp1);
@@ -370,7 +447,6 @@ int main(int argc, int **argv)
 	}
 	print_array_sentinel_llist(tmp3);
 	tmp5 = search_array_sentinel_llist(&tmp3, tmp4);
-*/
 	puts("array before hash");
 	print_array(tmp, ARRAY_NUM);
 	init_cmht(&tmp4);
@@ -378,5 +454,17 @@ int main(int argc, int **argv)
 		insert_cmht(&tmp4, tmp[i]);
 	}
 	print_cmht(&tmp4);
+*/
+	puts("array before double hashing open addressing hash:");
+	print_array(tmp, ARRAY_NUM);
+	init_dhoht(&tmp5);
+	for (i = 0; i < ARRAY_NUM; i++) {
+		insert_dhoht(&tmp5, tmp[i]);
+	}
+	print_dhoht(&tmp5);
+	for (i = 0; i < ARRAY_NUM; i++) {
+		delete_dhoht(&tmp5, tmp[i]);
+	}
+	print_dhoht(&tmp5);
 	return 0;
 }
