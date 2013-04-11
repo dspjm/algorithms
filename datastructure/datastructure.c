@@ -32,10 +32,13 @@
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #define ARRAY_NUM 100
 #define MAX_ELEMENT_NUM 500
 #define RAND_MOD 1000
+#define CMHT_SLOTS_NUM 8
+#define CMHT_HASH_POWER 3
 
 
 void set_seed()
@@ -261,26 +264,64 @@ struct cmht_node {
 };
 
 struct cm_hash_table {
-	struct cmht_node slots[CMHT_SLOTS_NUM]
+	struct cmht_node slots[CMHT_SLOTS_NUM];
+	unsigned int s;
+	unsigned int w;
+	unsigned int p;
 };
 
 void init_cmht(struct cm_hash_table *ht)
 {
+	int i;
 	for (i = 0; i < CMHT_SLOTS_NUM; i++) {
-		ht->slots[i].prev = &ht->slots[i];
-		ht->slots[i].next = &ht->slots[i];
+		ht->slots[i].prev = ht->slots + i;
+		ht->slots[i].next = ht->slots + i;
 		ht->slots[i].key = 0;
 	}
+	ht->s = rand();
+	ht->s <<= 1;
+	ht->s += rand() % 2;
+	ht->w = sizeof(int) * 8;
+	ht->p = CMHT_HASH_POWER;
+}
+
+unsigned int hash_cmht(struct cm_hash_table *ht, int key)
+{
+	unsigned int tmp;
+	tmp = ht->s * key;
+	tmp >>= (ht->w - ht->p);
+	return tmp;
 }
 
 void insert_cmht(struct cm_hash_table *ht, int key)
 {
 	int tmp;
-	w = sizeof(int) * 8;
-	p = rand() % w + 1;
-	s = rand();
-	tmp = s * key;
-	tmp = tmp >> (w - p);
+	struct cmht_node *tmp1;
+	tmp = hash_cmht(ht, key);
+	tmp1 = malloc(sizeof *tmp1);
+	tmp1->key = key;
+	tmp1->prev = &ht->slots[tmp];
+	tmp1->next = ht->slots[tmp].next;
+	ht->slots[tmp].next->prev = tmp1;
+	ht->slots[tmp].next = tmp1;
+}
+
+void print_cmht(struct cm_hash_table *ht)
+{
+	int i;
+	struct cmht_node *tmp;
+	printf("hash table:\n");
+	for (i = 0; i < CMHT_SLOTS_NUM; i++) {
+		tmp = ht->slots[i].next;
+		if (ht->slots[i].next == &ht->slots[i])
+			continue;
+		printf("slot %d: ", i);
+		while (tmp != &ht->slots[i]) {
+			printf("%d ", tmp->key);
+			tmp = tmp->next;
+		}
+		printf("\n");
+	}
 }
 
 int main(int argc, int **argv)
@@ -318,7 +359,6 @@ int main(int argc, int **argv)
 	}
 	puts("array after queue:");
 	print_array(tmp, ARRAY_NUM);
-*/
 	puts("array befor list:");
 	print_array(tmp, ARRAY_NUM);
 	init_array_sentinel_llist(&tmp3);
@@ -329,6 +369,14 @@ int main(int argc, int **argv)
 		}
 	}
 	print_array_sentinel_llist(tmp3);
-//	tmp5 = search_array_sentinel_llist(&tmp3, tmp4);
+	tmp5 = search_array_sentinel_llist(&tmp3, tmp4);
+*/
+	puts("array before hash");
+	print_array(tmp, ARRAY_NUM);
+	init_cmht(&tmp4);
+	for (i = 0; i < ARRAY_NUM; i++) {
+		insert_cmht(&tmp4, tmp[i]);
+	}
+	print_cmht(&tmp4);
 	return 0;
 }
