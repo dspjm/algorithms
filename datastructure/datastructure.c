@@ -253,13 +253,43 @@ void print_array_sentinel_llist(struct array_sentinel_llist l)
 		printf("%d\n", l.key[i]);
 }
 
+/* chained multiplication hash table*/
+struct cmht_node {
+	int key;
+	struct cmht_node *prev;
+	struct cmht_node *next;
+};
+
+struct cm_hash_table {
+	struct cmht_node slots[CMHT_SLOTS_NUM]
+};
+
+void init_cmht(struct cm_hash_table *ht)
+{
+	for (i = 0; i < CMHT_SLOTS_NUM; i++) {
+		ht->slots[i].prev = &ht->slots[i];
+		ht->slots[i].next = &ht->slots[i];
+		ht->slots[i].key = 0;
+	}
+}
+
+void insert_cmht(struct cm_hash_table *ht, int key)
+{
+	int tmp;
+	w = sizeof(int) * 8;
+	p = rand() % w + 1;
+	s = rand();
+	tmp = s * key;
+	tmp = tmp >> (w - p);
+}
+
 int main(int argc, int **argv)
 {
 	int tmp[ARRAY_NUM];
 	struct simple_stack tmp1;
 	struct simple_queue tmp2;
 	struct array_sentinel_llist tmp3;
-	int tmp4, tmp5;
+	struct cm_hash_table tmp4;
 	int i;
 	get_rand_array(tmp, ARRAY_NUM); /*
 	init_simplestack(&tmp1);
