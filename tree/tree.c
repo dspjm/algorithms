@@ -33,7 +33,7 @@
 #include <string.h>
 #include "algorithms.h"
 
-#define ARR_SIZE 200
+#define ARR_SIZE 10
 #define ARR_RANGE 1000
 
 enum color { RED = 0, BLACK = 1 };
@@ -297,7 +297,39 @@ void rbt_init(struct rbt *rbt)
 
 void rbt_rotate_right(struct rbt *t, struct rbt_node *tn)
 {
-	
+	struct rbt_node *tmp, *tmp1;
+	tmp = tn->p;
+	tmp1 = tn->l;
+	if (tmp == t->nil)
+		t->root = tn;
+	else if (tn == tmp->l)
+		tmp->l = tmp1;
+	else
+		tmp->r = tmp1;
+	tn->p = tmp1;
+	tn->l = tmp1->r;
+	tn->l->p = tn;
+	tmp1->p = tmp;
+	tmp1->r = tn;
+}
+
+void rbt_rotate_left(struct rbt *t, struct rbt_node *tn)
+{
+	struct rbt_node *tmp, *tmp1;
+	tmp = tn->p;
+	tmp1 = tn->r;
+	if (tmp == t->nil)
+		t->root = tmp1;
+	else if (tn == tmp->l)
+		tmp->l = tmp1;
+	else
+		tmp->r = tmp1;
+	tn->p = tmp1;
+	tn->r = tmp1->l;
+	tn->r->p = tn;
+	tmp1->p = tmp;
+	tmp1->l = tn;
+}
 
 void rbt_fix_balance(struct rbt *t, struct rbt_node *tn)
 {
@@ -307,6 +339,7 @@ void rbt_fix_balance(struct rbt *t, struct rbt_node *tn)
 	   There are three situations: tmp's uncle is red, tmp is a same kind
 	   of child as his parent(left or right), tmp is distinct kind of
 	   child */
+	tmp = tn;
 	while (tmp->p->c == RED) {
 		if (tmp->p == tmp->p->p->l) {
 			tmp1 = tmp->p->p->r;
@@ -321,7 +354,7 @@ void rbt_fix_balance(struct rbt *t, struct rbt_node *tn)
 			} else {
 				tmp->p->c = BLACK;
 				tmp->p->p->c = RED;
-				rbt_rotate_rigth(t, tmp->p->p);
+				rbt_rotate_right(t, tmp->p->p);
 			}
 		} else {
 			tmp1 = tmp->p->p->l;
@@ -363,21 +396,97 @@ void rbt_insert(struct rbt *t, int key)
 	}
 	if (tmp1 == t->nil)
 		t->root = tmp2;
-	else if (tmp == tmp1->l)
+	else if (key <= tmp1->key) {
 		tmp1->l = tmp2;
-	else
+		tmp2->p = tmp1;
+	} else {
 		tmp1->r = tmp2;
+		tmp2->p = tmp1;
+	}
+	if (rbt_check_subtree(t, tmp2))
+		printf("error\n");
+/*
 	rbt_fix_balance(t, tmp2);
+*/
+}
+
+struct rbt_node *rbt_minimum(struct rbt *t)
+{
+	struct rbt_node *tmp;
+	tmp = t->root;
+	while (tmp->l != t->nil)
+		tmp = tmp->l;
+	return tmp;
+}
+
+struct rbt_node *rbt_successor(struct rbt *t, struct rbt_node *tn)
+{
+	struct rbt_node *tmp, *tmp1;
+	if (tn->r != t->nil)
+		return tn->r;
+	tmp = tn;
+	tmp1 = tn->p;
+	while (tmp1 != t->nil && tmp == tmp1->r) {
+		tmp = tmp1;
+		tmp1 = tmp1->p;
+	}
+	return tmp1;
+}
+
+int rbt_check_subtree(struct rbt *t, struct rbt_node *tn)
+{
+	int r;
+	struct rbt_node *tmp, *tmpp, *tmpl, *tmpr;
+	tmp = tn;
+	if (tmp != t->nil) {
+		tmpp = tmp->p;
+		tmpl = tmp->l;
+		tmpr = tmp->r;
+		if (tmpp != t->nil && tmpp->l != tmp && tmpp->r != tmp)
+			return 1;
+		if (tmpl != t->nil && tmpl->p != tmp)
+			return 2;
+		if (tmpr != t->nil && tmpr->p != tmp)
+			return 3;
+		if (r = rbt_check_subtree(t, tmpl))
+			return r;
+		if (r = rbt_check_subtree(t, tmpr))
+			return r;
+	}
+	printf("key = %d checked\n", tn->key);
+	return 0;
+}
+
+int rbt_check_pointer(struct rbt *t)
+{
+	rbt_check_subtree(t, t->root);
+	return 0;
+}
+
+void rbt_print(struct rbt *rbt)
+{
+	struct rbt_node *tmp;
+	tmp = rbt_minimum(rbt);
+	printf("red black tree:\n");
+	while (tmp != rbt->nil) {
+		printf("%d ", tmp->key);
+		tmp = rbt_successor(rbt, tmp);
+	}
+	printf("\n");
 }
 
 int main(int argc, char **argv)
 {
 	int i;
+	int ret;
 	int tmp[ARR_SIZE];
 	struct bst bst;
 	struct bst_node *tmp1;
+	struct rbt rbt;
+	struct rbt_node *tmp2;
 	get_random_array(tmp, ARR_SIZE, ARR_RANGE);
 	print_array(tmp, ARR_SIZE, "original array");
+/*
 	init_bst(&bst);
 	for (i = 0; i < ARR_SIZE; i++)
 		bst_insert(&bst, tmp[i]);
@@ -385,15 +494,19 @@ int main(int argc, char **argv)
 	bst_check(&bst);
 	for (i = 0; i < ARR_SIZE; i++) {
 		tmp1 = bst_minimum(&bst);
-/*
-		printf("minimum found, tmp1 = %p, key = %d, p = %p, l = %p, r = %p, p->key = %d, p->l = %p, p->r = %p\n", tmp1, tmp1->key, tmp1->p, tmp1->l, tmp1->r, tmp1->p->key, tmp1->p->l, tmp1->p->r);
-		bst_print(&bst);
-*/
 		bst_delete(&bst, tmp1);
-/*
-		printf("after delete, tmp1 = %p, key = %d, p = %p, l = %p, r = %p, p->key = %d, p->l = %p, p->r = %p\n", tmp1, tmp1->key, tmp1->p, tmp1->l, tmp1->r, tmp1->p->key, tmp1->p->l, tmp1->p->r);
-*/
 		bst_check(&bst);
 	}
 	bst_print(&bst);
+*/
+	rbt_init(&rbt);
+	for (i = 0; i < ARR_SIZE; i++) {
+		rbt_insert(&rbt, tmp[i]);
+		if (ret = rbt_check_pointer(&rbt)) {
+			printf("error = %d\n", ret);
+			exit(1);
+		} else
+			printf("check passed\n");
+	}
+	rbt_print(&rbt);
 }
