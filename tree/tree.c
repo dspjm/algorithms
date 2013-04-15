@@ -36,6 +36,8 @@
 #define ARR_SIZE 200
 #define ARR_RANGE 1000
 
+enum color { RED = 0, BLACK = 1 };
+
 struct bst_node {
 	int key;
 	struct bst_node *p;
@@ -268,6 +270,104 @@ void bst_print(struct bst *bst)
 		tmp = bst_successor(tmp);
 	}
 	printf("\n");
+}
+
+struct rbt_node {
+	int key;
+	struct rbt_node *p;
+	struct rbt_node *l;
+	struct rbt_node *r;
+	enum color c;
+};
+
+struct rbt {
+	struct rbt_node *root;
+	struct rbt_node *nil;
+	struct rbt_node sentinel;
+};
+
+void rbt_init(struct rbt *rbt)
+{
+	rbt->nil = &rbt->sentinel;
+	rbt->sentinel.key = 0;
+	rbt->sentinel.p = rbt->sentinel.l = rbt->sentinel.r = rbt->nil;
+	rbt->sentinel.c = BLACK;
+	rbt->root = rbt->nil;
+}
+
+void rbt_rotate_right(struct rbt *t, struct rbt_node *tn)
+{
+	
+
+void rbt_fix_balance(struct rbt *t, struct rbt_node *tn)
+{
+	struct rbt_node *tmp, *tmp1;
+	/* tmp is always supposed to be child one of the possible consecutive
+	   red nodes. tmp1 is it's uncle.
+	   There are three situations: tmp's uncle is red, tmp is a same kind
+	   of child as his parent(left or right), tmp is distinct kind of
+	   child */
+	while (tmp->p->c == RED) {
+		if (tmp->p == tmp->p->p->l) {
+			tmp1 = tmp->p->p->r;
+			if (tmp1->c == RED) {
+				tmp->p->c = BLACK;
+				tmp1->c = BLACK;
+				tmp1->p->p->c = RED;
+				tmp = tmp->p->p;
+			} else if (tmp == tmp->p->r) {
+				tmp = tmp->p;
+				rbt_rotate_left(t, tmp);
+			} else {
+				tmp->p->c = BLACK;
+				tmp->p->p->c = RED;
+				rbt_rotate_rigth(t, tmp->p->p);
+			}
+		} else {
+			tmp1 = tmp->p->p->l;
+			if (tmp1->c == RED) {
+				tmp->p->c = BLACK;
+				tmp1->c = BLACK;
+				tmp1->p->c = RED;
+				tmp = tmp1->p;
+			} else if (tmp == tmp->p->l) {
+				tmp = tmp->p;
+				rbt_rotate_right(t, tmp);
+			} else {
+				tmp->p->p->c = RED;
+				tmp->p->c = BLACK;
+				rbt_rotate_left(t, tmp->p->p);
+			}
+		}
+	}
+	t->root->c = BLACK;
+}
+
+void rbt_insert(struct rbt *t, int key)
+{
+	struct rbt_node *tmp, *tmp1, *tmp2;
+	tmp2 = malloc(sizeof *tmp2);
+	tmp2->key = key;
+	tmp2->p = t->nil;
+	tmp2->l = t->nil;
+	tmp2->r = t->nil;
+	tmp2->c = RED;
+	tmp = t->root;
+	tmp1 = t->nil;
+	while (tmp != t->nil) {
+		tmp1 = tmp;
+		if (key <= tmp1->key)
+			tmp = tmp1->l;
+		else
+			tmp = tmp1->r;
+	}
+	if (tmp1 == t->nil)
+		t->root = tmp2;
+	else if (tmp == tmp1->l)
+		tmp1->l = tmp2;
+	else
+		tmp1->r = tmp2;
+	rbt_fix_balance(t, tmp2);
 }
 
 int main(int argc, char **argv)
