@@ -33,7 +33,7 @@
 #include <string.h>
 #include "algorithms.h"
 
-#define ARR_SIZE 100
+#define ARR_SIZE 10
 #define ARR_RANGE 1000
 
 enum color { RED = 0, BLACK = 1 };
@@ -376,6 +376,32 @@ void rbt_insert_fix_balance(struct rbt *t, struct rbt_node *tn)
 	t->root->c = BLACK;
 }
 
+int rbt_check_subtree(struct rbt *t, struct rbt_node *tn)
+{
+	int r;
+	struct rbt_node *tmp, *tmpp, *tmpl, *tmpr;
+	tmp = tn;
+	if (tmp != t->nil) {
+		tmpp = tmp->p;
+		tmpl = tmp->l;
+		tmpr = tmp->r;
+		if (tmpp != t->nil && tmpp->l != tmp && tmpp->r != tmp)
+			return 1;
+		if (tmpl != t->nil && tmpl->p != tmp)
+			return 2;
+		if (tmpr != t->nil && tmpr->p != tmp)
+			return 3;
+		if (r = rbt_check_subtree(t, tmpl))
+			return r;
+		if (r = rbt_check_subtree(t, tmpr))
+			return r;
+	}
+	printf("key = %d checked\n", tn->key);
+/*
+*/
+	return 0;
+}
+
 void rbt_insert(struct rbt *t, int key)
 {
 	struct rbt_node *tmp, *tmp1, *tmp2;
@@ -438,7 +464,42 @@ struct rbt_node *rbt_successor(struct rbt *t, struct rbt_node *tn)
 	return tmp1;
 }
 
-/* some discussion about red black tree*/
+/* some discussion about red black tree
+   In the function, tmp is sibling of tn, tn is the node which the 
+   contradictions occur. which means his parent has one more black height
+   from his sibling, which is the initial black height before delete.
+   What we are tring to do is to get one extra node to the branch tn is in,
+   while we must maintain sibling's branch's black height, or we reduce our
+   sibling one black height and let our parent be new tn. Since if tn is red,
+   we just need to change it's color and problem would solve, so we don't 
+   really consider this situation.
+   Ihe fix balance process contains four cases:
+   1. if our sibling is red(our parent must be black), we just need to rotate
+      once and let sibling be new parent, alternate parent's and sibling's
+      color, and we have got a new red node on our branch, however, things
+      are not that simple, we get a child from our sibling to be our new
+      sibling, and conflicts happens again, and we go to case 2 with a red
+      parent(if the new parent is not red, then we would end up an infinite
+      loop) or case 3, 4
+   2. if our sibling is black and both his children is black, we enter case 2,
+      if our parent is black, we set our sibling to red and let our parent to
+      be new tn, we must get our tree balance and get out of the loop. Even
+      if all our forbearances were black, the tn would finally passed to root,
+      then problem would be solved, because root is child of nobody, if his
+      children have same black height, the whole tree is balanced
+   3. if our sibling is black and his child which has an opposite direction
+      to his parent(if sibling is right child of his parent, this would be 
+      sibling's left child, vice versa) is white and the one in the same
+      direction is black, then we enter case 3.  we change that nephew to 
+      be our new sibling and let our previous sibling be his child and 
+      interchange their color. This case is actually a preperation for case 4. 
+      why do we need another case? because it's very inconvenient to directly
+      set those relationships, if we divide it into two steps, case4 just
+      need to rotate. Conclusively, this methos simplify the process and code.
+   4. if our sibling is black and his child which has same direction with him
+      is red, then we enter case 4. We would rotate tn's parent and let it be
+      black and the new parent would have new the old parent's original color.
+*/
 void rbt_delete_fix_balance(struct rbt *t, struct rbt_node *tn)
 {
 	struct rbt_node *tmp, *tmpp, *tmpl, *tmpr;
@@ -540,30 +601,6 @@ void rbt_delete(struct rbt *t, struct rbt_node *tn)
 	}
 }
 
-int rbt_check_subtree(struct rbt *t, struct rbt_node *tn)
-{
-	int r;
-	struct rbt_node *tmp, *tmpp, *tmpl, *tmpr;
-	tmp = tn;
-	if (tmp != t->nil) {
-		tmpp = tmp->p;
-		tmpl = tmp->l;
-		tmpr = tmp->r;
-		if (tmpp != t->nil && tmpp->l != tmp && tmpp->r != tmp)
-			return 1;
-		if (tmpl != t->nil && tmpl->p != tmp)
-			return 2;
-		if (tmpr != t->nil && tmpr->p != tmp)
-			return 3;
-		if (r = rbt_check_subtree(t, tmpl))
-			return r;
-		if (r = rbt_check_subtree(t, tmpr))
-			return r;
-	}
-	printf("key = %d checked\n", tn->key);
-	return 0;
-}
-
 int rbt_check_pointer(struct rbt *t)
 {
 	rbt_check_subtree(t, t->root);
@@ -615,7 +652,15 @@ int main(int argc, char **argv)
 			printf("error = %d\n", ret);
 			exit(1);
 		} else
-			printf("check passed\n");
+			printf("i = %d check passed\n", i);
+		rbt_print(&rbt);
 	}
-	rbt_print(&rbt);
+/*
+	for (i = 0; i < ARR_SIZE; i++) {
+		tmp2 = rbt_minimum(&rbt);
+		rbt_delete(&rbt, tmp2);
+		printf("%d deleted\n", tmp2->key);
+		rbt_print(&rbt);
+	}
+*/
 }
