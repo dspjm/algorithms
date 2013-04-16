@@ -33,7 +33,7 @@
 #include <string.h>
 #include "algorithms.h"
 
-#define ARR_SIZE 10
+#define ARR_SIZE 100
 #define ARR_RANGE 1000
 
 enum color { RED = 0, BLACK = 1 };
@@ -331,7 +331,7 @@ void rbt_rotate_left(struct rbt *t, struct rbt_node *tn)
 	tmp1->l = tn;
 }
 
-void rbt_fix_balance(struct rbt *t, struct rbt_node *tn)
+void rbt_insert_fix_balance(struct rbt *t, struct rbt_node *tn)
 {
 	struct rbt_node *tmp, *tmp1;
 	/* tmp is always supposed to be child one of the possible consecutive
@@ -406,24 +406,29 @@ void rbt_insert(struct rbt *t, int key)
 	if (rbt_check_subtree(t, tmp2))
 		printf("error\n");
 /*
-	rbt_fix_balance(t, tmp2);
+	rbt_insert_fix_balance(t, tmp2);
 */
+}
+
+struct rbt_node *rbt_subminimum(struct rbt *t, struct rbt_node *tn)
+{
+	while (tn->l != t->nil)
+		tn = tn->l;
+	return tn;
 }
 
 struct rbt_node *rbt_minimum(struct rbt *t)
 {
 	struct rbt_node *tmp;
 	tmp = t->root;
-	while (tmp->l != t->nil)
-		tmp = tmp->l;
-	return tmp;
+	return  rbt_subminimum(t, tmp);
 }
 
 struct rbt_node *rbt_successor(struct rbt *t, struct rbt_node *tn)
 {
 	struct rbt_node *tmp, *tmp1;
 	if (tn->r != t->nil)
-		return tn->r;
+		return rbt_subminimum(t, tn->r);
 	tmp = tn;
 	tmp1 = tn->p;
 	while (tmp1 != t->nil && tmp == tmp1->r) {
@@ -431,6 +436,108 @@ struct rbt_node *rbt_successor(struct rbt *t, struct rbt_node *tn)
 		tmp1 = tmp1->p;
 	}
 	return tmp1;
+}
+
+/* some discussion about red black tree*/
+void rbt_delete_fix_balance(struct rbt *t, struct rbt_node *tn)
+{
+	struct rbt_node *tmp, *tmpp, *tmpl, *tmpr;
+	while (tn != t->root && tn->c == BLACK) {
+		if (tn == tn->p->l) {
+			tmp = tn->p->r;
+			if (tmp->c == RED) {
+				tmp->c = BLACK;
+				tn->p->c = RED;
+				rbt_rotate_left(t, tn->p);
+			} else if (tmp->l->c == BLACK && tmp->r->c == BLACK) {
+				tmp->c = RED;
+				tn = tmp->p;
+			} else if (tmp->l->c == RED && tmp->r->c == BLACK) {
+				tmpp = tmp->p;
+				tmpl = tmp->l;
+				tmp->l = tmpl->r;
+				tmp->l->p = tmp;
+				tmpp->r = tmpl;
+				tmpl->p = tmpp;
+				tmpl->r = tmp;
+				tmp->p = tmpl;
+				tmp->c = RED;
+				tmpl->c = BLACK;
+			} else {
+				tmp->c = tmp->p->c;
+				tmp->p->c = BLACK;
+				tmp->r->c = RED;
+				rbt_rotate_left(t, tn->p);
+				tn = t->root;
+			}
+		} else {
+			tmp = tn->p->l;
+			if (tmp->c == RED) {
+				tmp->c = BLACK;
+				tmp->p->c = RED;
+				rbt_rotate_right(t, tn->p);
+			} else if (tmp->l->c == BLACK && tmp->r->c == BLACK) {
+				tmp->c = RED;
+				tn = tmp->p;
+			} else if (tmp->l->c == BLACK && tmp->r->c == RED) {
+				tmpp = tmp->p;
+				tmpr = tmp->r;
+				tmp->r = tmpr->l;
+				tmp->r->p = tmp;
+				tmpp->l = tmpr;
+				tmpr->p = tmpp;
+				tmpr->l = tmp;
+				tmp->p = tmpr;
+				tmp->c = RED;
+				tmpr->c = BLACK;
+			} else {
+				tmp->c = tmp->p->c;
+				tmp->l->c = BLACK;
+				tmp->p->c = BLACK;
+				rbt_rotate_right(t, tn->p);
+				tn = t->root;
+			}
+		}
+	}
+	tn->c = BLACK;
+}
+
+void rbt_delete(struct rbt *t, struct rbt_node *tn)
+{
+	struct rbt_node *tmp, *tmp1, *tmp2;
+	if (tn->r == t->nil || tn->l == t->nil)
+		tmp = tn;
+	else
+		tmp = rbt_successor(t, tn);
+	if (tmp->l != t->nil)
+		tmp1 = tmp->l;
+	else
+		tmp1 = tmp->r;
+	tmp2 = tmp->p;
+	tmp1->p = tmp2;
+	if (tmp2 == t->nil)
+		t->root = tmp1;
+	else if (tmp == tmp2->l)
+		tmp2->l = tmp1;
+	else
+		tmp2->r = tmp1;
+	if (tmp->c == BLACK)
+		rbt_delete_fix_balance(t, tmp1);
+	if (tmp != tn) {
+		if (tn->p == t->nil)
+			t->root = tmp;
+		else if (tn == tn->p->l)
+			tn->p->l = tmp;
+		else
+			tn->p->r = tmp;
+		tmp->p = tn->p;
+		tmp->l = tn->l;
+		tmp->r = tn->r; tmp->c = tn->c;
+		if (tn->l != t->nil)
+			tn->l->p = tmp;
+		if (tn->r != t->nil)
+			tn->r->p = tmp;
+	}
 }
 
 int rbt_check_subtree(struct rbt *t, struct rbt_node *tn)
@@ -465,14 +572,16 @@ int rbt_check_pointer(struct rbt *t)
 
 void rbt_print(struct rbt *rbt)
 {
+	int i = 0;
 	struct rbt_node *tmp;
 	tmp = rbt_minimum(rbt);
 	printf("red black tree:\n");
 	while (tmp != rbt->nil) {
 		printf("%d ", tmp->key);
+		i++;
 		tmp = rbt_successor(rbt, tmp);
 	}
-	printf("\n");
+	printf("\n%d nodes printed\n", i);
 }
 
 int main(int argc, char **argv)
