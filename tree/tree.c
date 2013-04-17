@@ -301,7 +301,7 @@ void rbt_rotate_right(struct rbt *t, struct rbt_node *tn)
 	tmp = tn->p;
 	tmp1 = tn->l;
 	if (tmp == t->nil)
-		t->root = tn;
+		t->root = tmp1;
 	else if (tn == tmp->l)
 		tmp->l = tmp1;
 	else
@@ -311,6 +311,8 @@ void rbt_rotate_right(struct rbt *t, struct rbt_node *tn)
 	tn->l->p = tn;
 	tmp1->p = tmp;
 	tmp1->r = tn;
+	if (rbt_check_subtree(t, tn))
+		printf("error\n");
 }
 
 void rbt_rotate_left(struct rbt *t, struct rbt_node *tn)
@@ -326,19 +328,38 @@ void rbt_rotate_left(struct rbt *t, struct rbt_node *tn)
 		tmp->r = tmp1;
 	tn->p = tmp1;
 	tn->r = tmp1->l;
-	tn->r->p = tn;
+	if (tn->r != t->nil)
+		tn->r->p = tn;
 	tmp1->p = tmp;
 	tmp1->l = tn;
+	if (rbt_check_subtree(t, tn))
+		printf("error\n");
 }
 
+/* tmp is always supposed to be child one of the possible consecutive
+   red nodes. tmp1 is it's uncle.
+   There are three situations: tmp's uncle is red, tmp is a same kind
+   of child as his parent(left or right), tmp is distinct kind of
+   child */
+/* In this function, we might change our uncle's, our parent's and our
+   grandparent's color in case 1, nobodies color in case2, and 
+   grandparent's and parent's color in case 3. We never change color of
+   ourselves. In unusual situations, those nodes might be the nil node.
+   However, changing the nil node's color is forbidden. So, what if 
+   one of those nodes is the nil node.
+   For every case, our parent must not be root or nil, because it must 
+   be red. Though a root might be red, but it never appears as parent,
+   only when tmp is root it's possible for root to be red. Since our
+   parent can't be root, our grandparent can't be nil because only
+   root can have its parent nil. So we don't need to be afraid to
+   change nil's color when we are changing our parent or grandparent's
+   color.
+   For case 1,  our uncle can't be nil, because uncle's color must be red
+   to enter this case.
+   So, we never need to worry that we might change nil's color. */
 void rbt_insert_fix_balance(struct rbt *t, struct rbt_node *tn)
 {
 	struct rbt_node *tmp, *tmp1;
-	/* tmp is always supposed to be child one of the possible consecutive
-	   red nodes. tmp1 is it's uncle.
-	   There are three situations: tmp's uncle is red, tmp is a same kind
-	   of child as his parent(left or right), tmp is distinct kind of
-	   child */
 	tmp = tn;
 	while (tmp->p->c == RED) {
 		if (tmp->p == tmp->p->p->l) {
@@ -346,7 +367,7 @@ void rbt_insert_fix_balance(struct rbt *t, struct rbt_node *tn)
 			if (tmp1->c == RED) {
 				tmp->p->c = BLACK;
 				tmp1->c = BLACK;
-				tmp1->p->p->c = RED;
+				tmp->p->p->c = RED;
 				tmp = tmp->p->p;
 			} else if (tmp == tmp->p->r) {
 				tmp = tmp->p;
@@ -374,6 +395,9 @@ void rbt_insert_fix_balance(struct rbt *t, struct rbt_node *tn)
 		}
 	}
 	t->root->c = BLACK;
+	if (rbt_check_subtree(t, tmp))
+		printf("error\n");
+
 }
 
 int rbt_check_subtree(struct rbt *t, struct rbt_node *tn)
@@ -396,21 +420,28 @@ int rbt_check_subtree(struct rbt *t, struct rbt_node *tn)
 		if (r = rbt_check_subtree(t, tmpr))
 			return r;
 	}
-	printf("key = %d checked\n", tn->key);
 /*
+	printf("key = %d checked\n", tn->key);
 */
 	return 0;
+}
+
+struct rbt_node *alloc_init_rbt_node(struct rbt *t, int key)
+{
+	struct rbt_node *tmp;
+	tmp = malloc(sizeof *tmp);
+	tmp->key = key;
+	tmp->p = t->nil;
+	tmp->l = t->nil;
+	tmp->r = t->nil;
+	tmp->c = RED;
+	return tmp;
 }
 
 void rbt_insert(struct rbt *t, int key)
 {
 	struct rbt_node *tmp, *tmp1, *tmp2;
-	tmp2 = malloc(sizeof *tmp2);
-	tmp2->key = key;
-	tmp2->p = t->nil;
-	tmp2->l = t->nil;
-	tmp2->r = t->nil;
-	tmp2->c = RED;
+	tmp2 = alloc_init_rbt_node(t, key);
 	tmp = t->root;
 	tmp1 = t->nil;
 	while (tmp != t->nil) {
@@ -429,11 +460,10 @@ void rbt_insert(struct rbt *t, int key)
 		tmp1->r = tmp2;
 		tmp2->p = tmp1;
 	}
-	if (rbt_check_subtree(t, tmp2))
-		printf("error\n");
 /*
-	rbt_insert_fix_balance(t, tmp2);
+	if (rbt_check_subtree(t, tmp2))
 */
+	rbt_insert_fix_balance(t, tmp2);
 }
 
 struct rbt_node *rbt_subminimum(struct rbt *t, struct rbt_node *tn)
@@ -625,12 +655,14 @@ int main(int argc, char **argv)
 {
 	int i;
 	int ret;
-	int tmp[ARR_SIZE];
+	int tmp[ARR_SIZE] = {463, 275, 580, 298, 205, 316, 799, 774, 763, 18};
 	struct bst bst;
 	struct bst_node *tmp1;
 	struct rbt rbt;
 	struct rbt_node *tmp2;
 	get_random_array(tmp, ARR_SIZE, ARR_RANGE);
+/*
+*/
 	print_array(tmp, ARR_SIZE, "original array");
 /*
 	init_bst(&bst);
@@ -655,12 +687,13 @@ int main(int argc, char **argv)
 			printf("i = %d check passed\n", i);
 		rbt_print(&rbt);
 	}
-/*
 	for (i = 0; i < ARR_SIZE; i++) {
 		tmp2 = rbt_minimum(&rbt);
 		rbt_delete(&rbt, tmp2);
 		printf("%d deleted\n", tmp2->key);
 		rbt_print(&rbt);
 	}
+	return 0;
+/*
 */
 }
