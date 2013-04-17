@@ -28,6 +28,9 @@
  *
  */
 
+#ifndef ALGORITHMS_H
+#define ALGORITHMS_H
+
 #include <stdlib.h>
 #include <time.h>
 
@@ -56,3 +59,5 @@ static void print_array(int *a, int size, char *array_name)
 	}
 	printf("\n");
 }
+
+#endif

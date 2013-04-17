@@ -644,6 +644,7 @@ void rbt_delete(struct rbt *t, struct rbt_node *tn)
 		if (tn->r != t->nil)
 			tn->r->p = tmp;
 	}
+	free(tn);
 }
 
 int rbt_check_pointer(struct rbt *t)
