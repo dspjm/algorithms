@@ -553,6 +553,7 @@ void rbt_delete_fix_balance(struct rbt *t, struct rbt_node *tn)
 				tmp->c = RED;
 				tn = tmp->p;
 			} else if (tmp->l->c == RED && tmp->r->c == BLACK) {
+				/*
 				tmpp = tmp->p;
 				tmpl = tmp->l;
 				tmp->l = tmpl->r;
@@ -561,8 +562,10 @@ void rbt_delete_fix_balance(struct rbt *t, struct rbt_node *tn)
 				tmpl->p = tmpp;
 				tmpl->r = tmp;
 				tmp->p = tmpl;
+				*/
 				tmp->c = RED;
-				tmpl->c = BLACK;
+				tmp->l->c = BLACK;
+				rbt_rotate_right(t, tmp);
 			} else {
 				tmp->c = tmp->p->c;
 				tmp->p->c = BLACK;
@@ -580,6 +583,7 @@ void rbt_delete_fix_balance(struct rbt *t, struct rbt_node *tn)
 				tmp->c = RED;
 				tn = tmp->p;
 			} else if (tmp->l->c == BLACK && tmp->r->c == RED) {
+				/*
 				tmpp = tmp->p;
 				tmpr = tmp->r;
 				tmp->r = tmpr->l;
@@ -588,8 +592,10 @@ void rbt_delete_fix_balance(struct rbt *t, struct rbt_node *tn)
 				tmpr->p = tmpp;
 				tmpr->l = tmp;
 				tmp->p = tmpr;
+				*/
 				tmp->c = RED;
-				tmpr->c = BLACK;
+				tmp->r->c = BLACK;
+				rbt_rotate_left(t, tmp);
 			} else {
 				tmp->c = tmp->p->c;
 				tmp->l->c = BLACK;
