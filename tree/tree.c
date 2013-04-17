@@ -511,6 +511,15 @@ struct rbt_node *rbt_successor(struct rbt *t, struct rbt_node *tn)
       sibling, and conflicts happens again, and we go to case 2 with a red
       parent(if the new parent is not red, then we would end up an infinite
       loop) or case 3, 4
+      what case 1 really do is go get a red node from sibling branch and then
+      it's sure that we don't need to touch our forbearance to resolve the
+      conflict. If new sibling don't have a red child, we just need to set
+      our new sibling red, and conflict resolved. if he has a red child,
+      then we just transfer it to our side through case 3 and 4 and get a new
+      black node.
+      Case 1 is special because our sibling is red, so he's child has same
+      black heigh as himself, so, we can't get just rotate him to get a new
+      black node in our branch
    2. if our sibling is black and both his children is black, we enter case 2,
       if our parent is black, we set our sibling to red and let our parent to
       be new tn, we must get our tree balance and get out of the loop. Even
