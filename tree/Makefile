@@ -1,6 +1,6 @@
 CFLAGS+=-g -I../include
 
-.PHONY all
+.PHONY : all
 
 all: tree ostree
 
