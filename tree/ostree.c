@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include "algorithms.h"
 
-#define KEY_NUM 100
+#define KEY_NUM 5
 #define KEY_MAX 1000
 
 enum color { BLACK = 0, RED = 1 };
@@ -246,13 +246,14 @@ void ost_replace(struct ost *t, struct ost_node *a, struct ost_node *b)
 
 void ost_fix_delete_balance(struct ost *t, struct ost_node *tn)
 {
+	struct ost_node *sbl;
 	while (tn != t->root && tn->c == BLACK) {
 		if (tn == tn->p->l) {
 			sbl = tn->p->r;
 			if (sbl->c == RED) {
 				sbl->p->c = RED;
 				sbl->c = BLACK;
-				ost_left_rotate(t, tn->p)
+				ost_rotate_left(t, tn->p);
 			 } else if (sbl->r->c == BLACK) {
 				if (sbl->l->c == BLACK) {
 				 	sbl->c = RED;
@@ -263,21 +264,42 @@ void ost_fix_delete_balance(struct ost *t, struct ost_node *tn)
 					ost_rotate_right(t, sbl);
 				}
 			} else {
-				sib->c = sib->p->c;
-				sib->r->c = BLACK;
-				sib->p->c = BLACK;
+				sbl->c = sbl->p->c;
+				sbl->r->c = BLACK;
+				sbl->p->c = BLACK;
 				ost_rotate_left(t, tn->p);
 				tn = t->root;
 			}
 		} else {
 			sbl = tn->p->l;
 			if (sbl->c == RED) {
-				sb->p->c = RED
-				
+				sbl->p->c = RED;
+				sbl->c = BLACK;
+				ost_rotate_right(t, tn->p);
+			} else if (sbl->l->c == BLACK) {
+				if (sbl->r->c == BLACK) {
+					sbl->c = RED;
+					tn = tn->p;
+				} else {
+					sbl->c = RED;
+					sbl->r->c = BLACK;
+					ost_rotate_left(t, sbl);
+				}
+			} else {
+				sbl->c = sbl->p->c;
+				sbl->p->c = BLACK;
+				sbl->l = BLACK;
+				ost_rotate_right(t, tn->p);
+				tn = t->root;
+			}
+		}
+	}
+	tn->c = BLACK;
+}
 
 void ost_delete(struct ost *t, struct ost_node *tn)
 {
-	struct ost_node *tmp;
+	struct ost_node *tmp, *tmpp, *tmpc, *tmpt;
 	if (tn->l != t->nil || tn->r != t->nil)
 		tmp = tn;
 	else
@@ -309,28 +331,32 @@ void ost_delete(struct ost *t, struct ost_node *tn)
 int main(int argc, char **argv)
 {
 	int i;
-	int keys[KEY_NUM] = {253, 536, 446, 903, 701, 265, 133, 766, 419, 882};
+	int keys[KEY_NUM];
 	struct ost ost;
 	struct ost_node *tmp;
 	get_random_array(keys, KEY_NUM, KEY_MAX);
-/*
-*/
 	print_array(keys, KEY_NUM, "Original array");
 	ost_init(&ost);
 	for (i = 0; i < KEY_NUM; i++) {
+/*
 		printf("inserting keys[%d]\n", i);
+*/
 		ost_insert(&ost, keys[i]);
+/*
 		ost_print(&ost);
+*/
 	}
 	printf("ost after insertion:\n");
 	ost_print(&ost);
+/*
 	for (i = 0; i < KEY_NUM; i++) {
 		tmp = ost_select(&ost, ost.root, i + 1);
 		printf("the %dth smallest key is %d\n", i + 1, tmp->key);
 	}
+*/
 	printf("deleting tree:\n");
 	for (i = 0; i < KEY_NUM; i++) {
-		tmp = ost_minimum(&ost);
+		tmp = ost_minimum(&ost, ost.root);
 		ost_delete(&ost, tmp);
 		ost_print(&ost);
 	}

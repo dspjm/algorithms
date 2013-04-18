@@ -55,7 +55,7 @@ static void print_array(int *a, int size, char *array_name)
 	int i;
 	printf("%s:\n", array_name);
 	for (i = 0; i < size; i++) {
-		printf("%d ", a[i]);
+		printf("%d, ", a[i]);
 	}
 	printf("\n");
 }
