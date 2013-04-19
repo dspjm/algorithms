@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include "algorithms.h"
 
-#define KEY_NUM 5
+#define KEY_NUM 50
 #define KEY_MAX 1000
 
 enum color { BLACK = 0, RED = 1 };
@@ -87,9 +87,9 @@ void ost_rotate_left(struct ost *t, struct ost_node *tn)
 	if (tn == t->root)
 		t->root = tnr;
 	else if (tn == tn->p->l)
-		tn->p->l = tnr;
+		tnp->l = tnr;
 	else
-		tn->p->r = tnr;
+		tnp->r = tnr;
 	tn->p = tnr;
 	tn->r = tnr->l;
 	tn->r->p = tn;
@@ -209,11 +209,11 @@ void ost_print(struct ost *t)
 	struct ost_node *tmp;
 	tmp = ost_minimum(t, t->root);
 	while (tmp != t->nil) {
-		printf("%d-%d ", tmp->key, tmp->size);
+		printf("%d-%d c:%d p:%d l:%d r:%d\n", tmp->key, tmp->size, tmp->c, tmp->p->key, tmp->l->key, tmp->r->key);
 		tmp = ost_successor(t, tmp);
 		i++;
 	}
-	printf("\n%d nodes printed\n", i);
+	printf("%d nodes printed\n\n", i);
 }
 
 struct ost_node *ost_select(struct ost *t, struct ost_node *tn, int r)
@@ -300,7 +300,7 @@ void ost_fix_delete_balance(struct ost *t, struct ost_node *tn)
 void ost_delete(struct ost *t, struct ost_node *tn)
 {
 	struct ost_node *tmp, *tmpp, *tmpc, *tmpt;
-	if (tn->l != t->nil || tn->r != t->nil)
+	if (tn->l == t->nil || tn->r == t->nil)
 		tmp = tn;
 	else
 		tmp = ost_successor(t, tn);
@@ -321,6 +321,10 @@ void ost_delete(struct ost *t, struct ost_node *tn)
 		tmpt->size--;
 		tmpt = tmpt->p;
 	}
+/*
+	printf("deleting %i\n", tn->key);
+	ost_print(t);
+*/
 	if (tmp->c == BLACK)
 		ost_fix_delete_balance(t, tmpc);
 	if (tn != tmp)
@@ -331,10 +335,12 @@ void ost_delete(struct ost *t, struct ost_node *tn)
 int main(int argc, char **argv)
 {
 	int i;
-	int keys[KEY_NUM];
+	int keys[KEY_NUM] = { 20, 358, 752, 122, 60, };
 	struct ost ost;
 	struct ost_node *tmp;
 	get_random_array(keys, KEY_NUM, KEY_MAX);
+/*
+*/
 	print_array(keys, KEY_NUM, "Original array");
 	ost_init(&ost);
 	for (i = 0; i < KEY_NUM; i++) {
