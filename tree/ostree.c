@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include "algorithms.h"
 
-#define KEY_NUM 20
+#define KEY_NUM 200
 #define KEY_MAX 1000
 
 enum color { BLACK = 0, RED = 1 };
@@ -59,6 +59,7 @@ void ost_init(struct ost *t)
 	t->root = t->nil;
 	t->sentinel.key = 0;
 	t->sentinel.size = 0;
+	t->sentinel.c = BLACK;
 	t->sentinel.p = t->nil;
 	t->sentinel.l = t->nil;
 	t->sentinel.r = t->nil;
@@ -94,7 +95,8 @@ void ost_rotate_left(struct ost *t, struct ost_node *tn)
 		tnp->r = tnr;
 	tn->p = tnr;
 	tn->r = tnr->l;
-	tn->r->p = tn;
+	if (tn->r != t->nil)
+		tn->r->p = tn;
 	tnr->p = tnp;
 	tnr->l = tn;
 	tn->size = tn->l->size + tn->r->size + 1;
@@ -118,7 +120,11 @@ void ost_rotate_right(struct ost *t, struct ost_node *tn)
 		tnp->r = tnl;
 	tn->p = tnl;
 	tn->l = tnl->r;
-	tn->l->p = tn;
+	/* why do we need to check it here, not only for logic, if not check,
+	   parent would be lost when fixing balance, which construe nil as
+	   a somewhat nomal node */
+	if (tn->r != t->nil)
+		tn->l->p = tn;
 	tnl->p = tnp;
 	tnl->r = tn;
 	tn->size = tn->l->size + tn->r->size + 1;
@@ -217,7 +223,7 @@ void ost_print(struct ost *t)
 		tmp = ost_successor(t, tmp);
 		i++;
 	}
-	printf("%d nodes printed\n\n", i);
+	printf("%d nodes printed\n", i);
 }
 
 struct ost_node *ost_select(struct ost *t, struct ost_node *tn, int r)
@@ -266,8 +272,13 @@ void ost_fix_delete_balance(struct ost *t, struct ost_node *tn)
 					/* There is a huge mistake in 
 					   MIT's inroduction to algorithm,
 					   We might change color of nil when tn
-					   is nil, this would lead to bug */
+					   is nil, this would lead to bug
 					t->nil->c = BLACK;
+					!!! THIS IS WRONG.
+					YOUR TREE HAS A PROBLEM, since you
+					deleted a black node, your sibling
+					can never be nil
+					*/
 				} else {
 					sbl->c = RED;
 					sbl->l->c = BLACK;
@@ -293,8 +304,9 @@ void ost_fix_delete_balance(struct ost *t, struct ost_node *tn)
 					/* There is a huge mistake in 
 					   MIT's inroduction to algorithm,
 					   We might change color of nil when tn
-					   is nil, this would lead to bug */
+					   is nil, this would lead to bug
 					t->nil->c = BLACK;
+					see notes above*/
 				} else {
 					sbl->c = RED;
 					sbl->r->c = BLACK;
@@ -342,9 +354,45 @@ void ost_delete(struct ost *t, struct ost_node *tn)
 */
 	if (tmp->c == BLACK)
 		ost_fix_delete_balance(t, tmpc);
+	check_validity(t, t->root);
 	if (tn != tmp)
 		ost_replace(t, tn, tmp);
 	free(tn);
+}
+
+int check_validity(struct ost *t, struct ost_node *tn)
+{
+	int bhl, bhr;
+	bhl = 0;
+	bhr = 0;
+/*
+	printf("checking %d\n", tn->key);
+*/
+	if (tn->l != t->nil) {
+		if (tn->l->p != tn) {
+			printf("error with %i's left child", tn->key);
+			return -1;
+		}
+		bhl = check_validity(t, tn->l);
+		if (bhl < 0)
+			return -2;
+	}
+	if (tn->r != t->nil) {
+		if (tn->r->p != tn) {
+			printf("error with %i's right child", tn->key);
+			return -1;
+		}
+		bhr = check_validity(t, tn->r);
+		if (bhr < 0)
+			return -2;
+	}
+	if (bhl != bhr) {
+		printf("%d unbalanced\n", tn->key);
+		return -3;
+	}
+	if (tn->c == BLACK)
+		bhl++;
+	return bhl;
 }
 
 int main(int argc, char **argv)
@@ -353,18 +401,20 @@ int main(int argc, char **argv)
 	int keys[KEY_NUM] = {416, 743, 862, 203, 394, 831, 197, 299, 525, 368, 535, 814, 835, 168, 223, 482, 960, 6, 210, 165,};
 	struct ost ost;
 	struct ost_node *tmp;
-/*
 	get_random_array(keys, KEY_NUM, KEY_MAX);
+/*
 */
 	print_array(keys, KEY_NUM, "Original array");
 	ost_init(&ost);
 	for (i = 0; i < KEY_NUM; i++) {
-/*
 		printf("inserting keys[%d]\n", i);
+/*
 */
 		ost_insert(&ost, keys[i]);
 /*
 		ost_print(&ost);
+		if (check_validity(&ost, ost.root) < 0)
+			printf("error\n");
 */
 	}
 	printf("ost after insertion:\n");
@@ -380,6 +430,8 @@ int main(int argc, char **argv)
 		tmp = ost_minimum(&ost, ost.root);
 		ost_delete(&ost, tmp);
 		ost_print(&ost);
+		if (check_validity(&ost, ost.root) < 0)
+			printf("error\n");
 	}
 /*
 */

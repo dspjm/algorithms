@@ -33,7 +33,7 @@
 #include <string.h>
 #include "algorithms.h"
 
-#define ARR_SIZE 10
+#define ARR_SIZE 20
 #define ARR_RANGE 1000
 
 enum color { RED = 0, BLACK = 1 };
@@ -308,7 +308,8 @@ void rbt_rotate_right(struct rbt *t, struct rbt_node *tn)
 		tmp->r = tmp1;
 	tn->p = tmp1;
 	tn->l = tmp1->r;
-	tn->l->p = tn;
+	if (tn->l != t->nil)
+		tn->l->p = tn;
 	tmp1->p = tmp;
 	tmp1->r = tn;
 	if (rbt_check_subtree(t, tn))
@@ -550,6 +551,7 @@ void rbt_delete_fix_balance(struct rbt *t, struct rbt_node *tn)
 				tn->p->c = RED;
 				rbt_rotate_left(t, tn->p);
 			} else if (tmp->l->c == BLACK && tmp->r->c == BLACK) {
+				if (tmp = t->nil)
 				tmp->c = RED;
 				tn = tmp->p;
 			} else if (tmp->l->c == RED && tmp->r->c == BLACK) {
@@ -580,6 +582,7 @@ void rbt_delete_fix_balance(struct rbt *t, struct rbt_node *tn)
 				tmp->p->c = RED;
 				rbt_rotate_right(t, tn->p);
 			} else if (tmp->l->c == BLACK && tmp->r->c == BLACK) {
+				if (tmp = t->nil)
 				tmp->c = RED;
 				tn = tmp->p;
 			} else if (tmp->l->c == BLACK && tmp->r->c == RED) {
@@ -671,13 +674,13 @@ int main(int argc, char **argv)
 {
 	int i;
 	int ret;
-	int tmp[ARR_SIZE] = {463, 275, 580, 298, 205, 316, 799, 774, 763, 18};
+	int tmp[ARR_SIZE] = {416, 743, 862, 203, 394, 831, 197, 299, 525, 368, 535, 814, 835, 168, 223, 482, 960, 6, 210, 165,};
 	struct bst bst;
 	struct bst_node *tmp1;
 	struct rbt rbt;
 	struct rbt_node *tmp2;
-	get_random_array(tmp, ARR_SIZE, ARR_RANGE);
 /*
+	get_random_array(tmp, ARR_SIZE, ARR_RANGE);
 */
 	print_array(tmp, ARR_SIZE, "original array");
 /*
@@ -701,12 +704,16 @@ int main(int argc, char **argv)
 			exit(1);
 		} else
 			printf("i = %d check passed\n", i);
+/*
 		rbt_print(&rbt);
+*/
 	}
 	for (i = 0; i < ARR_SIZE; i++) {
 		tmp2 = rbt_minimum(&rbt);
 		rbt_delete(&rbt, tmp2);
+/*
 		printf("%d deleted\n", tmp2->key);
+*/
 		rbt_print(&rbt);
 	}
 	return 0;
