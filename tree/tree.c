@@ -358,6 +358,9 @@ void rbt_rotate_left(struct rbt *t, struct rbt_node *tn)
    For case 1,  our uncle can't be nil, because uncle's color must be red
    to enter this case.
    So, we never need to worry that we might change nil's color. */
+/* We can't simply rotate and change color in case 2, because after 
+   rotation, Our grandparent must be red, otherwise black height excceeds,
+   and we are attached to our grandparent, conflicts again.*/
 void rbt_insert_fix_balance(struct rbt *t, struct rbt_node *tn)
 {
 	struct rbt_node *tmp, *tmp1;

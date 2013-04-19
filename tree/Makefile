@@ -2,8 +2,10 @@ CFLAGS+=-g -I../include
 
 .PHONY : all
 
-all: tree ostree
+all: tree ostree interval_tree
 
-tree :
+tree:
 
-ostree :
+ostree:
+
+interval_tree:
