@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include "algorithms.h"
 
-#define KEY_NUM 50
+#define KEY_NUM 20
 #define KEY_MAX 1000
 
 enum color { BLACK = 0, RED = 1 };
@@ -80,8 +80,10 @@ struct ost_node *ost_alloc_init_node(struct ost *t, int key)
 void ost_rotate_left(struct ost *t, struct ost_node *tn)
 {
 	struct ost_node *tnp, *tnr;
+/*
 	if (tn == t->nil)
 		return;
+*/
 	tnp = tn->p;
 	tnr = tn->r;
 	if (tn == t->root)
@@ -102,8 +104,10 @@ void ost_rotate_left(struct ost *t, struct ost_node *tn)
 void ost_rotate_right(struct ost *t, struct ost_node *tn)
 {
 	struct ost_node *tnp, *tnl;
+/*
 	if (tn == t->nil)
 		return;
+*/
 	tnp = tn->p;
 	tnl = tn->l;
 	if (tn == t->root)
@@ -227,6 +231,7 @@ struct ost_node *ost_select(struct ost *t, struct ost_node *tn, int r)
 	return t->nil;
 }
 
+/*replace a with b*/
 void ost_replace(struct ost *t, struct ost_node *a, struct ost_node *b)
 {
 	b->p = a->p;
@@ -258,6 +263,11 @@ void ost_fix_delete_balance(struct ost *t, struct ost_node *tn)
 				if (sbl->l->c == BLACK) {
 				 	sbl->c = RED;
 					tn = tn->p;
+					/* There is a huge mistake in 
+					   MIT's inroduction to algorithm,
+					   We might change color of nil when tn
+					   is nil, this would lead to bug */
+					t->nil->c = BLACK;
 				} else {
 					sbl->c = RED;
 					sbl->l->c = BLACK;
@@ -280,6 +290,11 @@ void ost_fix_delete_balance(struct ost *t, struct ost_node *tn)
 				if (sbl->r->c == BLACK) {
 					sbl->c = RED;
 					tn = tn->p;
+					/* There is a huge mistake in 
+					   MIT's inroduction to algorithm,
+					   We might change color of nil when tn
+					   is nil, this would lead to bug */
+					t->nil->c = BLACK;
 				} else {
 					sbl->c = RED;
 					sbl->r->c = BLACK;
@@ -335,11 +350,11 @@ void ost_delete(struct ost *t, struct ost_node *tn)
 int main(int argc, char **argv)
 {
 	int i;
-	int keys[KEY_NUM] = { 20, 358, 752, 122, 60, };
+	int keys[KEY_NUM] = {416, 743, 862, 203, 394, 831, 197, 299, 525, 368, 535, 814, 835, 168, 223, 482, 960, 6, 210, 165,};
 	struct ost ost;
 	struct ost_node *tmp;
-	get_random_array(keys, KEY_NUM, KEY_MAX);
 /*
+	get_random_array(keys, KEY_NUM, KEY_MAX);
 */
 	print_array(keys, KEY_NUM, "Original array");
 	ost_init(&ost);
