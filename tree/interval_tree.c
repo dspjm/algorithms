@@ -33,7 +33,7 @@
 #include <string.h>
 #include "algorithms.h"
 
-#define INTVL_NUM 200
+#define INTVL_NUM 50
 #define INTVL_MAX 1000
 
 enum color { BLACK = 0, RED = 1 };
@@ -124,6 +124,8 @@ void intt_rotate_left(struct intt *t, struct intt_node *tn)
 		tn->r->p = tn;
 	tn->p = tnr;
 	tnr->l = tn;
+	intt_set_max(t, tn);
+	intt_set_max(t, tnr);
 }
 
 void intt_rotate_right(struct intt *t, struct intt_node *tn)
@@ -143,13 +145,15 @@ void intt_rotate_right(struct intt *t, struct intt_node *tn)
 		tn->l->p = tn;
 	tn->p = tnl;
 	tnl->r = tn;
+	intt_set_max(t, tn);
+	intt_set_max(t, tnl);
 }
 
 void intt_fix_insert_balance(struct intt *t, struct intt_node *tn)
 {
 	struct intt_node *tnu;
 	while (tn->p->c == RED) {
-		if (tn->p = tn->p->p->l) {
+		if (tn->p == tn->p->p->l) {
 			tnu = tn->p->p->r;
 			if (tnu->c == RED) {
 				tn->p->c = BLACK;
@@ -184,9 +188,20 @@ void intt_fix_insert_balance(struct intt *t, struct intt_node *tn)
 	t->root->c = BLACK;
 }
 
+int intt_set_max(struct intt *t, struct intt_node *tn)
+{
+	int max = tn->it.high;
+	if (tn->l != t->nil && tn->l->max > max)
+		max = tn->l->max;
+	if (tn->r != t->nil && tn->r->max > max)
+		max = tn->l->max;
+	tn->max = max;
+	return max;
+}
+
 void intt_insert(struct intt *t, struct interval it)
 {
-	struct intt_node *tmp, *tmp1, *tmp2;
+	struct intt_node *tmp, *tmp1, *tmp2, *tmpt;
 	tmp = intt_alloc_init_inttnode(t, it);
 	tmp1 = t->root;
 	tmp2 = tmp1->p;
@@ -204,6 +219,11 @@ void intt_insert(struct intt *t, struct interval it)
 	else
 		tmp2->r = tmp;
 	tmp->p = tmp2;
+	tmpt = tmp;
+	while (tmpt != t->nil) {
+		intt_set_max(t, tmpt);
+		tmpt = tmpt->p;
+	}
 	intt_fix_insert_balance(t, tmp);
 }
 
@@ -273,11 +293,139 @@ void intt_print(struct intt *t)
 	printf("%d nodes printed\n\n", i);
 }
 
+void intt_fix_delete_balance(struct intt *t, struct intt_node *tn)
+{
+	struct intt_node *sib;
+	while (tn->c == BLACK && tn != t->root) {
+		if (tn == tn->p->l) {
+			sib = tn->p->r;
+			if (sib->c == RED) {
+				sib->c = BLACK;
+				sib->p->c = RED;
+				intt_rotate_left(t, tn->p);
+			} else if (sib->r->c == BLACK) {
+				if (sib->l->c == BLACK) {
+					sib->c = RED;
+					tn = tn->p;
+				} else {
+					sib->c = RED;
+					sib->l->c = BLACK;
+					intt_rotate_right(t, sib);
+				}
+			} else {
+				sib->c = tn->p->c;
+				sib->r->c = BLACK;
+				tn->p->c = BLACK;
+				intt_rotate_left(t, tn->p);
+				tn = t->root;
+			}
+		} else {
+			sib = tn->p->l;
+			if (sib->c == RED) {
+				sib->c = BLACK;
+				sib->p->c = RED;
+				intt_rotate_left(t, tn->p);
+			} else if (sib->l->c == BLACK) {
+				if (sib->r->c == BLACK) {
+					sib->c = RED;
+					tn = tn->p;
+				} else {
+					sib->c = RED;
+					sib->r->c = BLACK;
+					intt_rotate_left(t, sib);
+				}
+			} else {
+				sib->c = sib->p->c;
+				tn->p->c = BLACK;
+				sib->l->c = BLACK;
+				intt_rotate_right(t, tn->p);
+				tn = t->root;
+			}
+		}
+	}
+	tn->c = BLACK;
+}
+
+void intt_replace_node(struct intt *t, struct intt_node *a, struct intt_node *b)
+{
+	if (a->p == t->nil)
+		t->root = b;
+	else if (a == a->p->l)
+		a->p->l = b;
+	else
+		a->p->r = b;
+	b->p = a->p;
+	if (a->l != t->nil)
+		a->l->p = b;
+	b->l = a->l;
+	if (a->r != t->nil)
+		a->r->p = b;
+	b->r = a->r;
+	b->c = a->c;
+}
+
+void intt_delete(struct intt *t, struct intt_node *tn)
+{
+	struct intt_node *tmp, *tmp1, *tmpt;
+	if (tn->l == t->nil || tn->r == t->nil)
+		tmp = tn;
+	else
+		tmp = intt_successor(t, tn);
+	if (tmp->l != t->nil)
+		tmp1 = tmp->l;
+	else
+		tmp1 = tmp->r;
+	if (tmp->p == t->nil)
+		t->root = tmp1;
+	else if (tmp == tmp->p->l)
+		tmp->p->l = tmp1;
+	else
+		tmp->p->r = tmp1;
+	tmp1->p = tmp->p;
+	tmpt = tmp1;
+	while (tmpt != t->nil) {
+		intt_set_max(t, tmpt);
+		tmpt = tmpt->p;
+	}
+	if (tmp->c == BLACK)
+		intt_fix_delete_balance(t, tmp1);
+	if (tn != tmp) {
+		intt_replace_node(t, tn, tmp);
+		tmpt = tmp;
+		while (tmpt != t->nil) {
+			intt_set_max(t, tmpt);
+			tmpt = tmpt->p;
+		}
+	}
+	free(tn);
+}
+
+int interval_overlaps(struct interval it1, struct interval it2)
+{
+	if (it1.low <= it2.high && it2.low <= it1.high)
+		return 1;
+	return 0;
+}
+
+struct intt_node *intt_search(struct intt *t, struct interval it)
+{
+	struct intt_node *tmp;
+	tmp = t->root;
+	if (tmp != t->nil && !interval_overlaps(it, tmp->it)) {
+		if (it.low <= tmp->max)
+			tmp = tmp->l;
+		else
+			tmp = tmp->r;
+	}
+	return tmp;
+}
+
 int main(int argc, char **argv)
 {
 	int i;
 	struct interval tmp[INTVL_NUM];
 	struct intt tmp1;
+	struct intt_node *tmp2;
 	get_random_interval(tmp);
 	intt_init(&tmp1);
 	for (i = 0; i < INTVL_NUM; i++) {
@@ -286,5 +434,19 @@ int main(int argc, char **argv)
 			exit(1);
 		intt_print(&tmp1);
 	}
+	for (i = 0; i < INTVL_NUM; i++) {
+		tmp2 = intt_search(&tmp1, tmp[i]);
+		printf("%i - %i overlaps %i - %i\n", tmp[i].low, tmp[i].high,
+		  tmp2->it.low, tmp2->it.high);
+	}
+/*
+	for (i = 0; i < INTVL_NUM; i++) {
+		tmp2 = intt_minimum(&tmp1, tmp1.root);
+		intt_delete(&tmp1, tmp2);
+		if (intt_check(&tmp1, tmp1.root) < 0)
+			exit(1);
+		intt_print(&tmp1);
+	}
+*/
 	return 0;
 }

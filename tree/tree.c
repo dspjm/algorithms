@@ -520,7 +520,12 @@ struct rbt_node *rbt_successor(struct rbt *t, struct rbt_node *tn)
       conflict. If new sibling don't have a red child, we just need to set
       our new sibling red, and conflict resolved. if he has a red child,
       then we just transfer it to our side through case 3 and 4 and get a new
-      black node.
+      black node. But we are sure that our original has two non-nil children,
+      so as our new sibling. Because we just delete a black node and I am a
+      black node and original sibling is red, which means he must have at
+      least two levels of bljust delete a black node and I am a
+      black node and original sibling is red, which means he must have at
+      least two levels of black nodes.
       Case 1 is special because our sibling is red, so he's child has same
       black heigh as himself, so, we can't get just rotate him to get a new
       black node in our branch
