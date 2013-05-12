@@ -39,6 +39,46 @@ int mc_mul_cost(int p, int q, int r)
 	return p * r * q;
 }
 
+void mc_compute_sub_optimal_cost(int *ml, int (*mcost)[20], int n, int i, int j)
+{
+	int p, q, r;
+	int k = i, tmp;
+	int min, min_pos;
+	p = ml[i];
+	q = ml[k + 1];
+	r = ml[j + 1];
+	min = mc_mul_cost(p, q, r) + mcost[i][k] + mcost[k + 1][j];
+	min_pos = k;
+	for (k++; k < j; k++) {
+		p = ml[i];
+		q = ml[k + 1];
+		r = ml[j + 1];
+		tmp = mc_mul_cost(p, q, r) + mcost[i][k] + mcost[k + 1][j];
+		if (tmp < min) {
+			min = tmp;
+			min_pos = k;
+		}
+	}
+	mcost[i][j] = min;
+	mcost[n - 1 - i][n - 1 - j] = min_pos;
+/*
+	printf("find cost for %i, %i is %i\n", i, j, min);
+*/
+}
+
+void mc_compute_optimal_cost(int *ml, int (*mcost)[20], int n)
+{
+	int i, j;
+	for (i = 0; i < n; i++) {
+		mcost[i][i] = 0;
+	}
+	for (j = 1; j < n; j++) {
+		for (i = 0; i < n - j; i++) {
+			mc_compute_sub_optimal_cost(ml, mcost, n, i, i + j);
+		}
+	}
+}
+
 void mc_print_costs(int (*mcost)[MATRIX_NUM], int n)
 {
 	int i, j;
@@ -58,42 +98,41 @@ void mc_print_costs(int (*mcost)[MATRIX_NUM], int n)
 	}
 }
 
-void mc_compute_sub_optimal_cost(int *ml, int (*mcost)[20], int n, int i, int j)
-{
-	int p, q, r;
-	int k = i, tmp;
-	int min, min_pos;
-	p = ml[i];
-	q = ml[k + 1];
-	r = ml[j + 1];
-	min = mc_mul_cost(p, q, r) + mcost[i][k] + mcost[k + 1][j];
-	min_pos = k;
-	for (k++; k <= j; k++) {
-		p = ml[i];
-		q = ml[k + 1];
-		r = ml[j + 1];
-		tmp = mc_mul_cost(p, q, r) + mcost[i][k] + mcost[k + 1][j];
-		if (tmp < min) {
-			min = tmp;
-			min_pos = k;
-		}
-	}
-	mcost[i][j] = min;
-	mcost[n - 1 - i][n - 1 - j] = min_pos;
-	printf("find cost for %i, %i is %i\n", i, j, min);
-}
-
-void mc_compute_optimal_cost(int *ml, int (*mcost)[20], int n)
+void mc_print_dividers(int mcost[][MATRIX_NUM], int n)
 {
 	int i, j;
+	printf(" j");
+	for (j = 0; j < n; j++) {
+		printf("\t%i", j);
+	}
+	printf("\ni\n");
 	for (i = 0; i < n; i++) {
-		mcost[i][i] = 0;
+		printf("%i", i);
+		for (j = 0; j < i; j++)
+			printf("\t");
+		for (j = i; j < n; j++)
+			printf("\t%i", mcost[n - 1 - i][n - 1 - j]);
+		printf("\n");
 	}
-	for (j = 1; j < n; j++) {
-		for (i = 0; i < n - j; i++) {
-			mc_compute_sub_optimal_cost(ml, mcost, n, i, i + j);
-		}
+}
+
+void mc_optimal_print(int mcost[][MATRIX_NUM], int i, int j, int n)
+{
+	if (i == j)
+		printf("A%i", i);
+	else {
+		printf("(");
+		mc_optimal_print(mcost, i, mcost[n - 1 - i][n - 1 - j], n);
+		printf(" * ");
+		mc_optimal_print(mcost, mcost[n - 1 - i][n - 1 - j] + 1, j, n);
+		printf(")");
 	}
+}
+
+void mc_print_best_path(int mcost[][MATRIX_NUM], int n)
+{
+	mc_optimal_print(mcost, 0, n - 1, n);
+	printf("\n");
 }
 
 int main(int argc, char **argv)
@@ -104,9 +143,9 @@ int main(int argc, char **argv)
 	mc_compute_optimal_cost(ml, mcost, MATRIX_NUM);
 	print_array(ml, MATRIX_NUM + 1, "ml");
 	mc_print_costs(mcost, MATRIX_NUM);
-/*
 	mc_print_dividers(mcost, MATRIX_NUM);
 	mc_print_best_path(mcost, MATRIX_NUM);
+/*
 */
 	return 0;
 }
