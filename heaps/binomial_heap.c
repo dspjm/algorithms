@@ -1,8 +1,8 @@
-/* algorithms.h
+/* binomial_heap.c
  *
  * Author: Jimmy Pan
  * Email: dspjmt@gmail.com
- * Date: Fri Apr 12 10:57:33 CST 2013
+ * Date: Sun May 12 00:02:00 CST 2013
  * 
  * Copyright (C) 2013 Jimmy Pan
  *
@@ -28,44 +28,3 @@
  *
  */
 
-#ifndef ALGORITHMS_H
-#define ALGORITHMS_H
-
-#include <stdlib.h>
-#include <time.h>
-
-static void set_seed(void)
-{
-	time_t tmp;
-	time(&tmp);
-	srand((unsigned int)tmp);
-}
-
-static void get_random_array(int *a, int size, int max)
-{
-	int i;
-	set_seed();
-	for (i = 0; i < size; i++) {
-		a[i] = rand() % max + 1;
-	}
-}
-
-static void get_random_array_setseedless(int *a, int size, int max)
-{
-	int i;
-	for (i = 0; i < size; i++) {
-		a[i] = rand() % max + 1;
-	}
-}
-
-static void print_array(int *a, int size, char *array_name)
-{
-	int i;
-	printf("%s:\n", array_name);
-	for (i = 0; i < size; i++) {
-		printf("%d, ", a[i]);
-	}
-	printf("\n");
-}
-
-#endif
