@@ -29,10 +29,13 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "algorithms.h"
 
 #define STR_LEN 20
 #define NUM_MAX 25
+
+enum directions { NONE = 0, SLANT = 1, FI = 2, FJ = 3 };
 
 void lcs_convert_array(int *s, int n)
 {
@@ -50,14 +53,58 @@ void lcs_print_string(int *s, int n, char *name)
 	printf("\n");
 }
 
-void compute_longest_subsequence(int *s1, int *s2, int llen[][STR_LEN + 1],
+void lcs_get_longest_length(int *s1, int *s2, int llen[][STR_LEN + 1],
+  int sup[][STR_LEN + 1], int n, int i, int j)
+{
+	if (s1[i] == s2[j]) {
+		llen[i + 1][j + 1] = llen[i][j] + 1;
+		sup[i + 1][j + 1] = SLANT;
+	} else if (llen[i + 1][j] >= llen[i][j + 1]) {
+		llen[i + 1][j + 1] = llen[i + 1][j];
+		sup[i + 1][j + 1] = FI;
+	} else {
+		llen[i + 1][j + 1] = llen[i][j + 1];
+		sup[i + 1][j + 1] = FJ;
+	}
+}
+
+void lcs_compute_longest_subsequence(int *s1, int *s2, int llen[][STR_LEN + 1],
   int sup[][STR_LEN + 1], int n)
 {
 	int i, j;
 	memset(llen, 0, sizeof **llen * n * n);
 	memset(sup, 0, sizeof **llen * n * n);
 	for (i = 1; i < n; i++) {
-		for (j = 1
+		for (j = 1; j < n; j++) {
+			lcs_get_longest_length(s1, s2, llen, sup, n, i, j);
+		}
+	}
+}
+
+void lcs_print_longest_subsequence(int *s1, int *s2, int sup[][STR_LEN + 1],
+  int n)
+{
+	int tmp;
+	int i, j, cnt;
+	int subseq[n];
+	for (i = n - 1, j = n - 1, cnt = 0; i >= 0 && j >= 0;) {
+		tmp = sup[i + 1][j + 1];
+		if (tmp == SLANT) {
+			i--;
+			j--;
+			subseq[cnt] = s1[i];
+			cnt++;
+		} else if (tmp == FI)
+			j--;
+		else
+			i--;
+	}
+	printf("longest subsequence is:\n");
+	for (; cnt > 0; cnt--) {
+		printf("%c", subseq[cnt - 1]);
+	}
+	printf("\n");
+}
 
 int main(int argc, int **argv)
 {
@@ -69,5 +116,9 @@ int main(int argc, int **argv)
 	lcs_convert_array(s2, STR_LEN);
 	lcs_print_string(s1, STR_LEN, "s1");
 	lcs_print_string(s2, STR_LEN, "s2");
-	compute_longest_subsequence(s1, s2, llen, sup, STR_LEN);
+	lcs_compute_longest_subsequence(s1, s2, llen, sup, STR_LEN);
+	printf("longest common subsequence length is: %i\n",
+	  llen[STR_LEN][STR_LEN]);
+	lcs_print_longest_subsequence(s1, s2, sup, STR_LEN);
+	return 0;
 }
