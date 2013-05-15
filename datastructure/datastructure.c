@@ -344,6 +344,7 @@ unsigned int dhoht_hash(struct dho_ht *ht, int key, int i)
 {
 	int hash1, hash2;
 	hash1 = key % DHO_KEY_NUM;
+/* this hash fucntion is a bit of tricky, read book for explaination */
 	hash2 = ((key * ht->s) << ((sizeof(int) * 8) - DHO_KEY_NUM_POWER));
 	hash2  = i * ((hash2 << 1) + 1);
 	return (hash1 + hash2) % DHO_KEY_NUM;
