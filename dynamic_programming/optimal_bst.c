@@ -32,7 +32,7 @@
 #include <string.h>
 #include "algorithms.h"
 
-#define KEY_NUM 20
+#define KEY_NUM 100
 #define RAW_POSS_MAX 100
 
 float obst_get_min_expt(float expt[][KEY_NUM], float dumkp[], int i, int j)
@@ -48,28 +48,25 @@ float obst_calculate_min_expt(int root[][KEY_NUM], float expt[][KEY_NUM],
 {
 	int k, min_pos;
 	float tmp1, tmp2, tmp3;
+	float tmps[j - i + 1];
 	if (i > j)
 		return dumkp[i];
 	else {
-		float tmps[j - i + 1];
 		for (k = i; k <= j; k++) {
 			tmp1 = obst_get_min_expt(expt, dumkp, i, k - 1);
 			tmp2 = obst_get_min_expt(expt, dumkp, k + 1, j);
 			tmp3 = psum[i][j];
 			tmps[k - i] = tmp1 + tmp2 + tmp3;
-/*
-			printf(", for k = 0, tmp1 = %f, tmp2 = %f, tmp3 = %f, tmps[k - i] = %f", tmp1, tmp2, tmp3, tmps[k - i]);
-*/
 		}
-		min_pos = i;
-		for (k = i + 1; k <= j; k++) {
+		min_pos = 0;
+		for (k = 1; k < j - i + 1; k++) {
 			if (tmps[k] < tmps[min_pos])
 				min_pos = k;
 		}
+		min_pos += i;
 		root[i][j] = min_pos;
 		expt[i][j] = tmps[min_pos - i];
-		printf(", root is %i", min_pos);
-		return tmps[min_pos];
+		return tmps[min_pos - i];
 	}
 }
 
@@ -77,37 +74,35 @@ void obst_find_optimal_solution(int root[][KEY_NUM], float expt[][KEY_NUM],
   float psum[][KEY_NUM], float dumkp[], int n)
 {
 	int i, j;
-	for (j = 0; j < n - 1; j++) {
+	for (j = 0; j < n; j++) {
 		for (i = 0; i < n - j; i++) {
-			printf("\ncalculating %i to %i, min is %f", i, i + j, obst_calculate_min_expt(root, expt, psum, dumkp, i, i + j));
+			obst_calculate_min_expt(root, expt, psum, dumkp, i, i + j);
 		}
 	}
 }
 
-void obst_print_subroots(int root[][KEY_NUM], int i, int j)
+void obst_print_subroots(int root[][KEY_NUM], float expt[][KEY_NUM], int i, int j)
 {
 	int k;
 	k = root[i][j];
 	if (i > j)
 		return;
-	else if (i == j)
-		printf("node key: %d    left child: dum right child: dum\n", k);
 	else {
-		printf("node key: %d    left child: %d right child: %d\n", k,
-		  root[i][k - 1], root[k + 1][j]);
-		obst_print_subroots(root, i, k - 1);
-		obst_print_subroots(root, k + 1, j);
+		printf("from node %d to %d, root is %d, minimum expect is %f\n", i, j, k, expt[i][j]);
+		obst_print_subroots(root, expt, i, k - 1);
+		obst_print_subroots(root, expt, k + 1, j);
 	}
 }
 
-void obst_print_roots(int root[][KEY_NUM], int n)
+void obst_print_roots(int root[][KEY_NUM], float expt[][KEY_NUM], int n)
 {
-	obst_print_subroots(root, 0, n - 1);
+	obst_print_subroots(root, expt, 0, n - 1);
 }
 
-void obst_print_floats(float a[], int n)
+void obst_print_floats(float a[], int n, char *name)
 {
 	int i;
+	puts(name);
 	for (i = 0; i < n; i++)
 		printf("%f ", a[i]);
 	puts("");
@@ -124,6 +119,7 @@ int main(int argc, char **argv)
 	memset(root, 0, sizeof root);
 	memset(expt, 0, sizeof expt);
 	memset(psum, 0, sizeof psum);
+/* init posibilities for keyp, dumkp, psum */
 	for (i = 0; i < KEY_NUM * 2 + 1; i++) {
 		sum += tmp[i];
 	}
@@ -136,15 +132,18 @@ int main(int argc, char **argv)
 	}
 	for (i = 0; i < KEY_NUM; i++) {
 		psum[i][i] = keyp[i] + dumkp[i] + dumkp[i + 1];
-		for (j = i + 1; j < KEY_NUM; j++) {
-			psum[i][j] = psum[i][j - 1] + keyp[j] + dumkp[j + 1];
-		}
 	}
-	obst_print_floats(keyp, KEY_NUM);
-	obst_print_floats(dumkp, KEY_NUM + 1);
+	for (i = 1; i < KEY_NUM; i++)
+		for (j = 0; j + i < KEY_NUM; j++) {
+			psum[j][j + i] = psum[j][j + i - 1] + keyp[j + i]
+			  + dumkp[j + i + 1];
+		}
+
+	obst_print_floats(keyp, KEY_NUM, "keyp");
+	obst_print_floats(dumkp, KEY_NUM + 1, "dumkp");
 /*
 */
 	obst_find_optimal_solution(root, expt, psum, dumkp, KEY_NUM);
-	obst_print_roots(root, KEY_NUM);
+	obst_print_roots(root, expt, KEY_NUM);
 	return 0;
 }
