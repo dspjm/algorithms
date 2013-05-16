@@ -1,0 +1,29 @@
+algorithms
+==========
+btree
+datastructure:
+	datastructure.c: simple stack; simple queue; sentinel linked list with
+	a free head to book unused node(implemented by array); chained 
+	multiplicaton hash table; double hashing open addressing hash table
+dynamic_programming:
+	assembly_line.c
+	longest_comm_subseq.c
+	matrix_chain.c
+	optimal_tree.c
+greedy_algorithm:
+	activity_selection.c
+	huffman_code.c
+priority_queue
+	priority_queue.c
+selection:
+	selection.c: select min and max which saves 1/4 time from normal;
+	select ith least with random partitioning; select ith least with 
+	median of medians partitioning selection in worst case linear time
+sort:
+	sort.c: insertion sort; merge sort; permute array by sorting; 
+	permute array by random in place; heap sort; quick sort; randomized
+	quick sort; counting sort; radix sort; bucket sort
+tree:
+	interval_tree.c
+	ostree.c: order statistic tree
+	tree.c: binary search tree; red black tree
