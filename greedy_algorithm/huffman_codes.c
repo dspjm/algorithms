@@ -34,6 +34,7 @@
 
 #define KEY_NUM 26
 #define FREQ_MAX 30
+#define NON_LEAF_KEY 0
 
 struct hc_node {
 	int key;
@@ -41,6 +42,7 @@ struct hc_node {
 	struct hc_node *p;
 	struct hc_node *l;
 	struct hc_node *r;
+	struct hc_node *n;
 };
 
 static struct hc_node *alloc_init_hc_node(int key, int freq)
@@ -141,6 +143,7 @@ static struct hc_avail_queue_node *hc_add_to_head_availqueue(struct hc_avail_que
 struct hc_heap {
 	struct hc_avail_queue_node head;
 	struct hc_heap_node *root;
+	struct hc_node *first;
 };
 
 static struct hc_heap *alloc_init_hc_heap()
@@ -201,7 +204,7 @@ static struct hc_heap_node *hc_extract_min_heap(struct hc_heap *h)
 	struct hc_avail_queue_node *last_q;
 	struct hc_heap_node *root, *last;
 	if (!h->root) {
-		fprintf(stderr, "heap underflow");
+		fprintf(stderr, "heap underflow\n");
 		return NULL;
 	}
 	root = h->root;
@@ -227,18 +230,74 @@ static struct hc_heap_node *hc_extract_min_heap(struct hc_heap *h)
 struct hc_heap *hc_build_heap(int *keys, int *freqs, int n)
 {
 	int i;
-	struct hc_node *hcn;
+	struct hc_node *hcn, tmp, *prev_hcn;
 	struct hc_heap *heap;
 	struct hc_heap_node *hn;
 	heap = alloc_init_hc_heap();
+	prev_hcn = &tmp;
 	for (i = 0; i < n; i++) {
 		hcn = alloc_init_hc_node(keys[i], freqs[i]);
 		hn = alloc_init_hc_heap_node(hcn);
 		hc_insert_heap(heap, hn);
+		prev_hcn->n = hcn;
+		prev_hcn = hcn;
 	}
+	heap->first = tmp.n;
 	return heap;
 }
 
+struct hc_node *hc_build_haffman_tree_from_heap(struct hc_heap *h)
+{
+	struct hc_heap_node *nhn, *hn1, *hn2;
+	struct hc_node *nhcn, *hcn1, *hcn2;
+	hn1 = hc_extract_min_heap(h);
+	hn2 = hc_extract_min_heap(h);
+	while (hn1 && hn2) {
+		hcn1 = hn1->hcn;
+		hcn2 = hn2->hcn;
+		nhcn = alloc_init_hc_node(NON_LEAF_KEY, hcn1->freq + hcn2->freq);
+		hcn1->p = nhcn;
+		hcn2->p = nhcn;
+		nhcn->l = hcn1;
+		nhcn->r = hcn2;
+		nhn = alloc_init_hc_heap_node(nhcn);
+		hc_insert_heap(h, nhn);
+		free(hn1);
+		free(hn2);
+		hn1 = hc_extract_min_heap(h);
+		hn2 = hc_extract_min_heap(h);
+	}
+	nhcn = hn1->hcn;
+	free(hn1);
+	return nhcn;
+}
+
+void hc_print_haffman_code(struct hc_node *first, int n)
+{
+	struct hc_node *hcn, *tmp, *tmpp;
+	int code[n], cnt, i;
+	if (!first)
+		return;
+	hcn = first;
+	while (hcn) {
+		printf("key: %c, freq: %i, code: ", hcn->key, hcn->freq);
+		tmp = hcn;
+		tmpp = tmp->p;
+		cnt = 0;
+		while(tmpp) {
+			if (tmp == tmpp->l)
+				code[cnt++] = 0;
+			else
+				code[cnt++] = 1;
+			tmp = tmpp;
+			tmpp = tmp->p;
+		}
+		for ( i = cnt - 1; i >= 0; i--)
+			printf("%i", code[i]);
+		puts("");
+		hcn = hcn->n;
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -253,11 +312,15 @@ int main(int argc, char **argv)
 	get_random_array(freqs, KEY_NUM, FREQ_MAX);
 	print_array(freqs, KEY_NUM, "freqs");
 	heap = hc_build_heap(keys, freqs, KEY_NUM);
+	hcn = hc_build_haffman_tree_from_heap(heap);
+	hc_print_haffman_code(heap->first, KEY_NUM);
+/*
 	for (i = 0; i < KEY_NUM; i++) {
 		hn = hc_extract_min_heap(heap);
 		printf("hn: hcn->key = %c, hcn->freq = %i, p = %p, l = %p, r = %p\n", hn->hcn->key,hn->hcn->freq, hn->p, hn->l, hn->r);
 		free(hn->hcn);
 		free(hn);
 	}
+*/
 	return 0;
 }
