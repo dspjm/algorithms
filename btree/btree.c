@@ -289,15 +289,6 @@ static void bt_btree_delete(struct btree *t, int key)
 		bt_btree_node_delete_nonminimum(root, key);
 		return;
 	}
-/*
-	if (root->leaf) {
-		if (root->keys[0] == key)
-			root->key_num = 0;
-		else
-			fprintf("can't find key %i", key);
-		return;
-	}
-*/
 	if (key == root->keys[0]) {
 		struct btree_node *child;
 		if (!bt_btree_node_is_minimum_size(root->children[0])) {
@@ -373,14 +364,9 @@ static void bt_print_btree(struct btree *t)
 int main(int argc, char **argv)
 {
 	int i;
-	int keys[KEY_NUM] = {
-
-};
-
+	int keys[KEY_NUM];
 	struct btree *btree;
 	get_random_array(keys, KEY_NUM, KEY_MAX);
-/*
-*/
 	print_array(keys, KEY_NUM, "keys");
 	btree = bt_alloc_init_btree();
 	for (i = 0; i < KEY_NUM; i++) {
