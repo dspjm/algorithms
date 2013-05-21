@@ -30,6 +30,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "algorithms.h"
 
 #define MIN_CHILD_NUM 10
@@ -67,10 +68,13 @@ static int bt_btree_node_is_min_size(struct btree_node *n)
 	return n->key_num <= MIN_KEY_NUM;
 }
 
+/* index is children index, index can be last child*/
 static void
 bt_btree_node_shift_left_from_index(struct btree_node *n, int index)
 {
 	int i;
+	if (index == 0)
+		index = 1;
 	for (i = index; i < n->key_num; i++)
 		n->keys[i - 1] = n->keys[i];
 	if (!n->leaf)
@@ -79,6 +83,7 @@ bt_btree_node_shift_left_from_index(struct btree_node *n, int index)
 	n->key_num--;
 }
 
+/* index is children index, index can be last child*/
 static void
 bt_btree_node_shift_right_from_index(struct btree_node *n, int index)
 {
@@ -90,6 +95,70 @@ bt_btree_node_shift_right_from_index(struct btree_node *n, int index)
 		for (i = max_num; i > index; i--)
 			n->children[i] = n->children[i - 1];
 	n->key_num = max_num;
+}
+
+static void
+bt_btree_node_pop_head(struct btree_node *n, int *rk, struct btree_node **rn)
+{
+	*rk = n->keys[0];
+	if (n->leaf)
+		*rn = NULL;
+	else
+		*rn = n->children[0];
+	bt_btree_node_shift_left_from_index(n, 1);
+}
+
+static void
+bt_btree_node_pop_tail(struct btree_node *n, int *rk, struct btree_node **rn)
+{
+	*rk = n->keys[n->key_num - 1];
+	if (n->leaf)
+		*rn = NULL;
+	else
+		*rn = n->children[n->key_num];
+	n->key_num--;
+}
+
+static void bt_btree_node_transfer_from_left(struct btree_node *n, int pos)
+{
+	int tmpk;
+	struct btree_node *tmpn, *child;
+	child = n->children[pos];
+	bt_btree_node_pop_tail(n->children[pos - 1], &tmpk, &tmpn);
+	bt_btree_node_shift_right_from_index(child, 0);
+	child->keys[0] = n->keys[pos - 1];
+	n->keys[pos - 1] = tmpk;
+	if (!child->leaf)
+		child->children[0] = tmpn;
+}
+
+static void bt_btree_node_transfer_from_right(struct btree_node *n, int pos)
+{
+	int tmpk;
+	struct btree_node *tmpn, *child;
+	child = n->children[pos];
+	bt_btree_node_pop_head(n->children[pos + 1], &tmpk, &tmpn);
+	child->keys[child->key_num] = n->keys[pos];
+	n->keys[pos] = tmpk;
+	if (!child->leaf)
+		child->children[child->key_num + 1] = tmpn;
+	child->key_num++;
+}
+
+static int bt_btree_node_find_max(struct btree_node *n)
+{
+	int tmp;
+	while (!n->leaf)
+		n = n->children[n->key_num];
+	return n->keys[n->key_num - 1];
+}
+
+static int bt_btree_node_find_min(struct btree_node *n)
+{
+	int tmp;
+	while (!n->leaf)
+		n = n->children[0];
+	return n->keys[0];
 }
 
 static struct btree_node *
@@ -119,15 +188,114 @@ static void bt_btree_node_split_child(struct btree_node *n, int index)
 	n->keys[index + 1] = n->keys[index];
 	n->keys[index] = newkey;
 	n->children[index + 1] = sib;
-	n->key_num++;
 }
 
+/* gurantee n is not of maximum size before you call */
 static void bt_btree_node_insert_key(struct btree_node *n, int key)
 {
+	int i, pos;
+	struct btree_node *tmp;
+	for (i = 0; i < n->key_num && key > n->keys[i]; i++);
+	pos = i;
+	if (n->leaf) {
+		bt_btree_node_shift_right_from_index(n, pos);
+		n->keys[pos] = key;
+		return;
+	}
+	/* children[i]'s keys are always larger than keys[i - 1],
+	 * no larger than keys[i] */
+	if (bt_btree_node_is_max_size(n->children[pos])) {
+		bt_btree_node_split_child(n, pos);
+		if (key > n->keys[pos])
+			pos++;
+	}
+	bt_btree_node_insert_key(n->children[pos], key);
 }
 
+static void bt_btree_node_merge_children(struct btree_node *n, int pos)
+{
+	int i;
+	struct btree_node *child, *sib, tmpn;
+	child = n->children[pos];
+	sib = n->children[pos + 1];
+	for (i = 0; i < MIN_KEY_NUM; i++)
+		child->keys[MIN_KEY_NUM + 1 + i] = sib->keys[i];
+	if (!child->leaf)
+		for (i = 0; i < MIN_CHILD_NUM; i++)
+			child->children[MIN_CHILD_NUM + i] = sib->children[i];
+	child->keys[MIN_KEY_NUM] = n->keys[pos];
+	child->key_num = MAX_KEY_NUM;
+	n->children[pos + 1] = child;
+	bt_btree_node_shift_left_from_index(n, pos + 1);
+	free(sib);
+}
+
+static void bt_btree_node_solve_child_minsize(struct btree_node *n, int pos)
+{
+	if (pos > 0 && !bt_btree_node_is_min_size(n->children[pos - 1]))
+		bt_btree_node_transfer_from_left(n, pos);
+	else if (pos < n->key_num &&
+	  !bt_btree_node_is_min_size(n->children[pos + 1]))
+		bt_btree_node_transfer_from_right(n, pos);
+	else if (pos < n->key_num)
+		bt_btree_node_merge_children(n, pos);
+	else
+		bt_btree_node_merge_children(n, pos - 1);
+}
+
+/* gurantee n is not of minimum size before you call */
 static void bt_btree_node_delete_key(struct btree_node *n, int key)
 {
+	int i, pos, tmp;
+	struct btree_node *pc, *nc;
+	for (i = 0; i < n->key_num && key > n->keys[i]; i++);
+	pos = i;
+	if (n->leaf && (pos >= n->key_num || n->keys[pos] != key)) {
+		printf("key %i don't exsits", key);
+		return;
+	}
+	/* delete key from itself */
+	if (pos < n->key_num && n->keys[pos] == key) {
+		if (n->leaf) {
+			bt_btree_node_shift_left_from_index(n, pos + 1);
+		} else if (!bt_btree_node_is_min_size(n->children[pos])) {
+			tmp = bt_btree_node_find_max(n->children[pos]);
+			n->keys[pos] = tmp;
+			bt_btree_node_delete_key(n->children[pos], tmp);
+		} else if (!bt_btree_node_is_min_size(n->children[pos + 1])) {
+			tmp = bt_btree_node_find_min(n->children[pos + 1]);
+			n->keys[pos] = tmp;
+			bt_btree_node_delete_key(n->children[pos + 1], tmp);
+		} else {
+			bt_btree_node_merge_children(n, pos);
+			bt_btree_node_delete_key(n->children[pos], key);
+		}
+	} else {
+	/* delete key from child */
+		if (bt_btree_node_is_min_size(n->children[pos])) {
+			bt_btree_node_solve_child_minsize(n, pos);
+			bt_btree_node_delete_key(n, key);
+		} else {
+			bt_btree_node_delete_key(n->children[pos], key);
+		}
+	}
+}
+
+static void bt_btree_node_print(struct btree_node *n)
+{
+	int i;
+	printf("%d keys: ", n->key_num);
+	for (i = 0; i < n->key_num; i++)
+		printf("%i ", n->keys[i]);
+	if (n->leaf) {
+		printf(" it's a leaf\n");
+		return;
+	}
+	printf("\n");
+	for (i = 0; i <= n->key_num; i++) {
+		printf("subtree for %p at %p:\n", n, n->children[i]);
+		bt_btree_node_print(n->children[i]);
+	}
 }
 
 struct btree {
@@ -158,17 +326,51 @@ static void bt_btree_insert_key(struct btree *t, int key)
 		newroot->children[0] = root;
 		newroot->children[1] = sib;
 		t->root = newroot;
+		root = newroot;
 	}
-	bt_btree_node_insert_key(newroot, key);
+	bt_btree_node_insert_key(root, key);
 }
 
 static void bt_btree_delete_key(struct btree *t, int key)
 {
+	struct btree_node *root;
+	root = t->root;
+	bt_btree_node_delete_key(root, key);
+	if (root->key_num == 0) {
+		t->root = root->children[0];
+		free(root);
+	}
+}
+
+static void bt_btree_print(struct btree *t)
+{
+	printf("\nstart printing new tree:\nroot at %p:\n", t->root);
+	if (t->root)
+		bt_btree_node_print(t->root);
 }
 
 int main(int argc, char **argv)
 {
+	int i;
 	int keys[KEY_NUM];
-	struct 
+	struct btree *btree;
 	get_random_array(keys, KEY_NUM, KEY_MAX);
+/*
+*/
+	print_array(keys, KEY_NUM, "keys");
+	btree = bt_alloc_init_btree();
+	printf("inserting keys\n");
+	for (i = 0; i < KEY_NUM; i++) {
+		bt_btree_insert_key(btree, keys[i]);
+	}
+	printf("insertion finished\n");
+	bt_btree_print(btree);
+	printf("\ndeleting keys\n");
+	for (i = 0; i < KEY_NUM; i++) {
+		printf("\ndeleting %i\n", keys[i]);
+		bt_btree_delete_key(btree, keys[i]);
+		bt_btree_print(btree);
+	}
+	printf("deletion finished\n");
+	bt_btree_print(btree);
 }

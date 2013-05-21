@@ -1,2 +1,2 @@
 CFLAGS+=-g -I../include
-btree:
+all: btree btree1.1
